@@ -52,18 +52,20 @@ for index,row in Test_ratings.iterrows():
          join_data['similarity'] = join_data['vector_product']/(vector_length1*vector_length2)
          ##since we only interested in the similarity, just add it and the ids to the movie_sim
          ##so movie_sim will contains the similarity between the current movie and the moview user rated before
-         movie_sim = movie_sim.append(join_data[['movieId1','movieId2','userId','similarity']], ignore_index = True, sort = False)##similarity between movie i and j
+         movie_sim = movie_sim.append(join_data[['movieId1','movieId2','similarity']], ignore_index = True, sort = False)##similarity between movie i and j
+    
     ##now the movie_sim contain all the  similarity between the current movie and the moview user rated before, and we sore it by ascending order   
     movie_sim = movie_sim[movie_sim['similarity']<1].sort_values(['similarity'],ascending = False)
     ##top 20 similar item rate by user
     movie_sim = movie_sim.head(20) 
+    movie_sim['userId'] = predict_user
     #add these top 20 to the top_20 table, note top_20 table after the outer loop will contain all the top 20 for all the movie we will predict
     top_20 = top_20.append(movie_sim, ignore_index = True, sort = False)
 #prediction step
 #the sum of similarity in the specific movie for specific user    
 sum_sim = top_20.groupby(['movieId1','userId'],as_index = False).sum().rename(columns = {'similarity':'sum_sim'})[['movieId1','sum_sim','userId']]
 # temp is the join of the Train_ratings with the top 20 similarity, by the key userID and movieId
-temp = pd.merge(Train_ratings,top_20[['movieId1','movieId2','similarity']],left_on=['movieId','userid'], right_on = ['movieId2','userId'], how = 'inner')
+temp = pd.merge(Train_ratings,top_20,left_on=['movieId','userId'], right_on = ['movieId2','userId'], how = 'inner')
 # calculate the weighted rating
 temp['weighted_rate'] = temp['similarity'] * temp['ajusted_rating']
 # group the temp by movie1 and userId(movie1 is the one we want to predict), and sum up all the weighted rating that is similar to movie1

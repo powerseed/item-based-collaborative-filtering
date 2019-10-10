@@ -67,15 +67,15 @@ sum_sim = top_20.groupby(['movieId1','userId'],as_index = False).sum().rename(co
 # temp is the join of the Train_ratings with the top 20 similarity, by the key userID and movieId
 temp = pd.merge(Train_ratings,top_20,left_on=['movieId','userId'], right_on = ['movieId2','userId'], how = 'inner')
 # calculate the weighted rating
-temp['weighted_rate'] = temp['similarity'] * temp['ajusted_rating']
+temp['weighted_rate'] = temp['similarity'] * temp['adjusted_rating']
 # group the temp by movie1 and userId(movie1 is the one we want to predict), and sum up all the weighted rating that is similar to movie1
-temp = temp.groupby(['movieId1','userId'],as_index = False).sum().rename(columns = {'weighted_rate':'sum_w_rate'})[['movieId1','sum_w_rate','user_id']]
+temp = temp.groupby(['movieId1','userId'],as_index = False).sum().rename(columns = {'weighted_rate':'sum_w_rate'})[['movieId1','sum_w_rate','userId']]
 #join the sum_sim with temp, on movie1 and userid
 prediction = pd.merge(sum_sim,temp, on = ['movieId1','userId'], how = 'inner')
 prediction['pred_rate'] = prediction['sum_w_rate']/prediction['sum_sim']
-prediction = prediction['pred_rate','userId','movieId1']
+prediction = prediction[['pred_rate','userId','movieId1']]
 prediction = prediction.rename(columns={'movieId1':'movieId'})
-prediction = pd.merge(Means['movieId','rating_mean'],prediction, on=['movieId'],how = 'inner')
+prediction = pd.merge(Means[['movieId','rating_mean']],prediction, on=['movieId'],how = 'inner')
 prediction['pred_rate'] = prediction['pred_rate'] + prediction['rating_mean']
-comparison = pd.merge(Test_ratings,prediction['pred_rate','userId','movieId'], on = ['movieId','userId'], how = 'inner')
+comparison = pd.merge(Test_ratings,prediction[['pred_rate','userId','movieId']], on = ['movieId','userId'], how = 'inner')
 comparison['diff'] = comparison['pred_rate'] - comparison['rating']

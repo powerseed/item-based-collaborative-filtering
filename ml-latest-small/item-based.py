@@ -8,23 +8,22 @@ Created on Wed Oct  9 12:55:07 2019
 
 import pandas as pd
 import numpy as np
-import math
+import sys
 Ratings = pd.read_csv('ratings.csv')
 Movies = pd.read_csv('movies.csv')
-Tags = pd.read_csv('tags.csv')
 Means = Ratings.groupby(['movieId'],as_index = False).mean().rename(columns = {'rating':'rating_mean'})[['movieId','rating_mean']]
 Ratings = pd.merge(Ratings,Means,on='movieId', how = 'left')
 Ratings['adjusted_rating'] = Ratings['rating'] - Ratings['rating_mean']
 #try to see the movie that user 2 not rate
-user2_rated = Ratings[Ratings['userId'] == 2]##the movieId that user2 rated
-distinct_rated =np.unique(user2_rated['movieId'])
-user2_r = []
-for movieId in user2_rated['movieId']:
-    user2_r.append(movieId)
+user_rated = Ratings[Ratings['userId'] == sys.argv[1]]##the movieId that user2 rated
+distinct_rated =np.unique(user_rated['movieId'])
+user_r = []
+for movieId in user_rated['movieId']:
+    user_r.append(movieId)
 
 user2_not_rated = []
 for movieId in Movies['movieId']:
-    if not movieId in user2_r:
+    if not movieId in user_r:
         user2_not_rated.append(movieId)
 i = 0
 movie_unrated = pd.DataFrame()

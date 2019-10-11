@@ -1,25 +1,28 @@
 import pandas as pd
 import numpy as np
 from scipy.sparse import csr_matrix
+import math
 train_csv = pd.read_csv('training_ratings.csv')
 test_csv = pd.read_csv('test_ratings.csv')
+movie_csv = pd.read_csv('movies.csv')
 Means = train_csv.groupby(['movieId'],as_index = False).mean().rename(columns = {'rating':'rating_mean'})[['movieId','rating_mean']]
 train_csv = pd.merge(train_csv,Means,on='movieId', how = 'left')
 train_csv['adjusted_rating'] = train_csv['rating'] - train_csv['rating_mean']
+train_csv = train_csv.rename(columns = {'movieId':'movieId1'})
+train_csv = pd.merge(movie_csv,train_csv, left_on = 'movieId', right_on = 'movieId1', how ='left')
+train_csv.fillna(0)
 train_pivot = train_csv.pivot(index = 'movieId', columns = 'userId', values = 'adjusted_rating').fillna(0)
-train_sparse = csr_matrix(train_pivot)
-##train_mat = np.asarray(train_sparse.todense())
+train_mat = np.asarray(train_pivot)
 i = 0
 sum_residual = 0
 for index,row in test_csv.iterrows():
     if i % 10 == 0:
         print(i)
-
+    i = i + 1
     ##the user we are predicting
     predict_user_id = int(row['userId'])-1
     ##the movie we are predicting
     predict_movie_id = int(row['movieId'])-1
-    print(predict_movie_id)
     similarity = []
     rated_index = []
     user_rated = []
@@ -41,8 +44,8 @@ for index,row in test_csv.iterrows():
     sorted_index = np.argsort(similarity)
     sum_sim = np.sum(similarity)
     w_sum = 0
-    for i in range(min(len(rated_index),20)):
-        w_sum += similarity[sorted_index[i]]*user_rated[sorted_index[i]]
+    for j in range(min(len(rated_index),20)):
+        w_sum += similarity[sorted_index[j]]*user_rated[sorted_index[j]]
         
     prediction = w_sum/sum_sim
     residual = prediction - row['rating']

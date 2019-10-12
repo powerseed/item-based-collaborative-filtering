@@ -8,6 +8,6 @@ for i in range(m_id_col.shape[0]):
     if m_id_col[i] != i + 1:
         r_csv.loc[r_csv['movieId']== m_id_col[i],['movieId']] = i + 1
         m_csv.loc[m_csv['movieId']== m_id_col[i],['movieId']] = i + 1   
-m_csv.to_csv('movies1.csv')
+m_csv.to_csv('movies.csv')
 r_csv.to_csv('ratings.csv')
             

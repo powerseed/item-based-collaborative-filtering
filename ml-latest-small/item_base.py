@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 import math
-train_csv = pd.read_csv('training_ratings.csv')
-test_csv = pd.read_csv('test_ratings.csv')
-movie_csv = pd.read_csv('movies.csv')
+train_csv = pd.read_csv('data/training_ratings.csv')
+test_csv = pd.read_csv('data/test_ratings.csv')
+movie_csv = pd.read_csv('data/movies.csv')
 Means = train_csv.groupby(['movieId'],as_index = False).mean().rename(columns = {'rating':'rating_mean'})[['movieId','rating_mean']]
 train_csv = pd.merge(train_csv,Means,on='movieId', how = 'left')
 train_csv['adjusted_rating'] = train_csv['rating'] - train_csv['rating_mean']

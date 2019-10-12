@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-m_csv = pd.read_csv('movies.csv')
-r_csv = pd.read_csv('ratings.csv')
+m_csv = pd.read_csv('data/movies.csv')
+r_csv = pd.read_csv('data/ratings.csv')
 m_id_col = m_csv['movieId'].as_matrix()
 for i in range(m_id_col.shape[0]):
     print(i)

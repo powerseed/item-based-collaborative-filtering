@@ -4,19 +4,13 @@ import pandas as pd
 import numpy as np
 import math
 
-# Unnamed: 0, userId, movieId, rating, timestamp
-from pandas import DataFrame
+train_csv = pd.read_csv('../data/training_ratings.csv')
+test_csv = pd.read_csv('../data/test_ratings.csv')
+movie_csv = pd.read_csv('../data/movies.csv')
 
-train_csv = pd.read_csv('../data/training_ratings_trimmed.csv')
-# train_csv = pd.read_csv('../data/training_ratings.csv')
-
-# Unnamed: 0, userId, movieId, rating, timestamp
-test_csv = pd.read_csv('../data/test_ratings_trimmed.csv')
-# test_csv = pd.read_csv('../data/test_ratings.csv')
-
-# movieId, title, genres
-movie_csv = pd.read_csv('../data/movies_trimmed.csv')
-# movie_csv = pd.read_csv('../data/movies.csv')
+# train_csv = pd.read_csv('../data/training_ratings_trimmed.csv')
+# test_csv = pd.read_csv('../data/test_ratings_trimmed.csv')
+# movie_csv = pd.read_csv('../data/movies_trimmed.csv')
 
 # calculate the mean rating for each movie.
 # Means table contains columns:
@@ -25,30 +19,20 @@ Means = train_csv.groupby(['movieId'], as_index=False).mean().rename(columns={'r
     ['movieId', 'rating_mean']]
 
 table_similarities = pd.DataFrame(columns = ['movieId_i', 'movieId_j', 'similarity'])
-# table_similarities.loc[table_similarities.shape[0]+1] = [1, 2, 3]
-# print(table_similarities)
-# df = DataFrame(columns=('lib', 'qty1', 'qty2'))#生成空的pandas表
-# df.loc[df.shape[0]+1] = [randint(-1,1) for n in range(3)]
-# print(df)
 
-# table_similarities.to_csv(r'C:\4710project\item-based-collaborative-filtering\data\test.csv', index=None, header=True)
+for index_movie_i in range(movie_csv.shape[0]):
+    if index_movie_i % 10 == 0:
+        print(index_movie_i)
 
-i = 0
-for index, row_one_movie in movie_csv.iterrows():
-    if i % 10 == 0:
-        print(i)
-    i = i + 1
-
-    movieId_i = int(row_one_movie["movieId"])
+    row_movie_i = movie_csv.loc[index_movie_i, :]
+    movieId_i = int(row_movie_i["movieId"])
     movieId_i_rating_mean = Means[Means["movieId"] == movieId_i]["rating_mean"]
-    # print(movieId_i)
-    # print(movieId_i, ": ", movieId_i_rating_mean)
 
-    users_rated_movie_i = train_csv[ train_csv['movieId'] == movieId_i][["userId"]]
-    # print(users_rated_movie_i)
+    users_rated_movie_i = train_csv[train_csv['movieId'] == movieId_i][["userId"]]
 
-    for index1, row_another_movie in movie_csv.iterrows():
-        movieId_j = int(row_another_movie["movieId"])
+    for index_movie_j in range(index_movie_i + 1, movie_csv.shape[0]):
+        row_movie_j = movie_csv.loc[index_movie_j, ]
+        movieId_j = int(row_movie_j["movieId"])
 
         if movieId_j == movieId_i:
             break
@@ -62,8 +46,6 @@ for index, row_one_movie in movie_csv.iterrows():
             if(users_rated_both_i_and_j.shape[0] == 0):
                 break
             else:
-                # print("movieId_i: ", movieId_i, ", movieId_j: " , movieId_j, "users_rated_both_i_and_j: ", users_rated_both_i_and_j)
-
                 numerator = 0
                 denominator_left = 0
                 denominator_right = 0
@@ -73,7 +55,6 @@ for index, row_one_movie in movie_csv.iterrows():
 
                 for index3, user in users_rated_both_i_and_j.iterrows():
                     userId = int(user["userId"])
-                    # print(userId)
 
                     rating_of_movie_i_by_this_user = int( ratings_of_movie_i[ratings_of_movie_i['userId'] == userId] ["rating"] )
                     rating_of_movie_j_by_this_user = int( ratings_of_movie_j[ratings_of_movie_j['userId'] == userId] ["rating"] )
@@ -84,10 +65,9 @@ for index, row_one_movie in movie_csv.iterrows():
 
                     denominator_left += float(Rui_minus_mean_Ri * Rui_minus_mean_Ri)
                     denominator_right += float(Ruj_minus_mean_Rj * Ruj_minus_mean_Rj)
-
-                    #print(rating_of_movie_i_by_this_user)
                 # end for
 
+                similarity = 0
                 if numerator == 0:
                     similarity = 0
                 else:
@@ -102,5 +82,5 @@ for index, row_one_movie in movie_csv.iterrows():
                 table_similarities.loc[table_similarities.shape[0]+1] = [movieId_i, movieId_j, similarity]
     #end for
 #end for
-table_similarities.to_csv(r'C:\4710project\item-based-collaborative-filtering\data\table_similarities.csv',
+table_similarities.to_csv(r'C:\4710project\item-based-collaborative-filtering\data\similarities.csv',
                                       index=None, header=True)

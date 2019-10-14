@@ -21,7 +21,7 @@ for index,row in Test_ratings.iterrows():
     ##the movie we are predicting
     predict_movie = row['movieId']
     ##table contain all the rating about our predicted movie
-    movie_data1 = Train_ratings[Train_ratings['movieId']== predict_movie]
+    movie_data1 = Train_ratings[Train_ratings['movieId'] == predict_movie]
     ##just retrieve the attribute we need: userid, movieid and rating, and drop the duplicate as well
     movie_data1 = movie_data1[['userId','movieId','adjusted_rating']].drop_duplicates()
     ##rename the attribute for later join

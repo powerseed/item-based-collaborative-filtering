@@ -34,8 +34,8 @@ mr_csv['year-week'] = mr_csv['date'].dt.strftime('%Y-%U')
 ########################################################################################
 #user_id = [random.randint(0,len(mr_csv['userId'].unique())) for i in range(5)]
 #for id in user_id:
-#    mr_csv[mr_csv['userId'] == id].groupby('day-of-week')['userId'].count().plot(kind='bar')
-#    plt.show()
+    mr_csv[mr_csv['userId'] == id].groupby('day-of-week')['userId'].count().plot(kind='bar')
+    plt.show()
 ########################################################################################
 #    
 #user movie time genres

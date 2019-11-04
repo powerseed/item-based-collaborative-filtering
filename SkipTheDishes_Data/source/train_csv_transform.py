@@ -26,6 +26,7 @@ for i in range(complex_df.shape[0]):
 s_df['quantities'] =  quantities  
 s_df['item_count'] = item_count
 mat_val = s_df[['day_of_week', 'hour', 'quantities', 'item_count', 'food_prep_time_minutes']]
+mat_val.to_csv("data_after_cleaning.csv")
 mat = mat_val.values
 mat_output = open('trian_mat.npy','wb')
 np.save(mat_output,mat)

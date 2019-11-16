@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 class I_TFRS:## incremental tolerance fuzzy tough set
     def __init__(self):## the use of this tolerance still not decide yet
         pass
@@ -25,11 +26,16 @@ class I_TFRS:## incremental tolerance fuzzy tough set
     # way to imporve: one could try to using stream mining method, create a batch for the time window, each window have its own variance
     # output relation: the similarity of these two object in this specific attrbute
     def t_relation_per_attr(self,id1,id2,attr_id):## return the fuzzy relation of x and y
-        relation = np.exp(-((self.X[id1,attr_id] - self.X[id2,attr_id])**2)/(2*self.X_var[attr_id]))
-        if np.isnan(relation):##just in case variance is 0, then it make sense that they are the same 
-            relation = 1
-        return relation
-    
+        # relation = np.exp(-((self.X[id1,attr_id] - self.X[id2,attr_id])**2)/(2*self.X_var[attr_id]))
+        if self.X[id1, attr_id] == self.X[id2, attr_id]:
+            return 1
+        else:
+            return 0
+
+        # if np.isnan(relation):##just in case variance is 0, then it make sense that they are the same
+        #     relation = 1
+        # return relation
+
     #this method is intend to calculate the similarity of nominal attribute and decision
     #assumption are that decision and nominal attribute are all crisp instead of fuzzy
     #now it only used for calculate decision, for nominal attribute calculation, still working
@@ -192,12 +198,9 @@ class I_TFRS:## incremental tolerance fuzzy tough set
                     self.dis_dict[attr_id] = self.dis_dict[attr_id].difference(dis_red)
         return red
             
-    def fit(self,decision_table, decision_col_name):
+    def fit(self, decision_table, decision_col_name):
         self.Y = decision_table[decision_col_name].values
-        self.X = decision_table.drop([decision_col_name],axis = 1).values
-        self.X_var = []
-        for attr in range(self.X.shape[1]):
-            self.X_var.append(np.var(self.X[:,attr]))
+        self.X = decision_table.drop([decision_col_name], axis = 1).values
         self.reduct_attr = self.find_reduct()
 # this return the membership function of newX belong to decision's lower approximate
 # this method was used for prediction
@@ -383,14 +386,4 @@ class I_TFRS:## incremental tolerance fuzzy tough set
             if mf_d > max_mf:
                 max_mf = mf_d
                 best_decision = decision
-        return best_decision         
-            
-import pandas as pd
-df = pd.read_csv('default of credit card clients.csv')    
-df = df.drop(['ID'],axis = 1)
-tfrs = I_TFRS()
-tfrs.fit(df[:100],'dpnm')
-
-#tfrs.update(df.loc[600].values[:-1], df.loc[600].values[-1])
-test = df.drop(['dpnm'],axis = 1)             
-        
+        return best_decision

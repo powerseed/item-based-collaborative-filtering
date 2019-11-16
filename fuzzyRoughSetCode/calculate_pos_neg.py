@@ -1,23 +1,9 @@
-import pandas as pd
-import numpy as np
-import math
-from fuzzyRoughSetCode import clustering, TFRS
-from fuzzyRoughSetCode.TFRS import I_TFRS
+from fuzzyRoughSetCode import calculate_UX_UR
 
-data = pd.read_csv('../data/weather_features.csv')
+filename = 'weather_features.csv'
+decision_col = 'weather_main'
+col_to_drop = 'dt_iso'
 
-for column in data:
-    if ((column != 'weather_main') and (column != 'dt_iso')):
-        data[column] = clustering.cluster(data[column]).astype(str)
-
-# print(data['temp'])
-# data.to_csv(r'C:\4710project\item-based-collaborative-filtering\data\weather_clustered.csv',
-#                                       index=None, header=True)
-
-tfrs = I_TFRS()
-tfrs.fit(data[:500], 'weather_main')
-reduct = tfrs.reduct_attr
-print(reduct)
-
-#
-# print(data['humidity'])
+col_name_reduct, U_X, U_R = calculate_UX_UR.calculate_UX_UR(filename, decision_col, col_to_drop)
+# print(col_name_reduct)
+# print(U_R)

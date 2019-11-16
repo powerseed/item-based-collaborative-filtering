@@ -14,7 +14,7 @@ class I_TFRS:## incremental tolerance fuzzy tough set
     def t_relation_per_set(self,id1,id2,attr_ids):
         t_norm = 1
         for attr_id in attr_ids:
-            t_norm  = t_norm * (1- self.relation_tensor[attr_id][id1,id2])
+            t_norm  = t_norm * self.relation_tensor[attr_id][id1,id2]
         return t_norm
     
     #this method called to generate a relation matrix, using a relation matrix help to dynamically catch the value without calculate it every time

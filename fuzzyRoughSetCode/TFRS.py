@@ -85,7 +85,7 @@ class I_TFRS:## incremental tolerance fuzzy tough set
                 dis_set = []
                 if self.relation(id1,id2,'Y') != 1:
                     for attr_id in range(self.X.shape[1]):
-                        if 1 - self.relation_tensor[attr_id][id1,id2] > self.m_f[id1]:# check if more than 
+                        if 1 - self.relation_tensor[attr_id][id1,id2] >= self.m_f[id1]:# check if more than
                             dis_set.append(attr_id)## if so append
                     dis_mat[id1][id2] = dis_set## set it in the matrix
         return dis_mat

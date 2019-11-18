@@ -198,9 +198,9 @@ class I_TFRS:## incremental tolerance fuzzy tough set
                     self.dis_dict[attr_id] = self.dis_dict[attr_id].difference(dis_red)
         return red
             
-    def fit(self, decision_table, decision_col_name):
-        self.Y = decision_table[decision_col_name].values
-        self.X = decision_table.drop([decision_col_name], axis = 1).values
+    def fit(self, X, Y):
+        self.Y = Y
+        self.X = X
         self.reduct_attr = self.find_reduct()
 # this return the membership function of newX belong to decision's lower approximate
 # this method was used for prediction

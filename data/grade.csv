@@ -1,7 +1,7 @@
-headache,muscle,temperture,cough
-no,yes,high,yes
-yes,no,high,yes
-no,yes,normal,no
-no,yes,high,yes
-yes,no,high,no
-no,yes,high,yes
+C,S,P,Cracks
+high,high,low,yes
+avg,high,low,no
+avg,high,low,yes
+low,low,low,no
+avg,low,high,no
+high,low,high,yes

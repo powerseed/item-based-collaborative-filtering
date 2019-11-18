@@ -4,17 +4,17 @@ from fuzzyRoughSetCode.TFRS import I_TFRS
 
 def calculate_UX_UR(filename, decision_col, col_to_drop):
     table = pd.read_csv('../data/' + filename)
+    table = table.drop(columns=[col_to_drop])
 
     for column in table:
-        if ((column != decision_col) and (column != col_to_drop)):
+        if column != decision_col:
             table[column] = clustering.cluster(table[column]).astype(str)
 
-    table = table.drop(columns=[col_to_drop])
-    # table.to_csv(r'C:\4710project\item-based-collaborative-filtering\data\weather_clustered.csv',
-    #                                       index=None, header=True)
+    table.to_csv(r'C:\4710project\item-based-collaborative-filtering\data\weather_clustered.csv',
+                                          index=None, header=True)
 
     tfrs = I_TFRS()
-    tfrs.fit(table[:100], decision_col)
+    tfrs.fit(table, decision_col)
     reduct = tfrs.reduct_attr
     reduct = sorted(reduct)
 

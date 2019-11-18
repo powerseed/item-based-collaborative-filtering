@@ -8,6 +8,6 @@ def cluster(column):
     c = pd.DataFrame(kmodel.cluster_centers_).sort_values(0)  #输出聚类中心，并且排序（默认是随机序的）
     w = c.rolling(2).mean().iloc[1:] #相邻两项求中点，作为边界点
     w = [0] + list(w[0]) + [column.max()] #把首末边界点加上，w[0]中0为列索引
-    d3 = pd.cut(column, w)
+    d3 = pd.cut(column, w, include_lowest = True)
 
     return d3

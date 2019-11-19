@@ -25,20 +25,15 @@ class I_FRS:## incremental tolerance fuzzy tough set
     # way to imporve: one could try to using stream mining method, create a batch for the time window, each window have its own variance
     # output relation: the similarity of these two object in this specific attrbute
     def t_relation_per_attr(self,id1,id2,attr_id):## return the fuzzy relation of x and y
+        if attr_id in self.cat:
+            if self.X[id1] == self.X[id2]:
+                return 1
+            else:
+                return 0
         relation = np.exp(-((self.X[id1,attr_id] - self.X[id2,attr_id])**2)/(2*self.X_var[attr_id]))
         if np.isnan(relation):##just in case variance is 0, then it make sense that they are the same 
             relation = 1
         return relation
-    
-    #this method is intend to calculate the similarity of nominal attribute and decision
-    #assumption are that decision and nominal attribute are all crisp instead of fuzzy
-    #now it only used for calculate decision, for nominal attribute calculation, still working
-    # return true if they are the same and false if not
-    def relation(self,id1,id2,attr_id): ## classical relation
-        if attr_id == 'Y':
-            return self.Y[id1] == self.Y[id2]
-        else:
-            return self.X[id1] == self.X[id2]
     
     #this method return the membership function of object id1 to its decision d's lower_approximate
     # input id1: object id
@@ -56,7 +51,7 @@ class I_FRS:## incremental tolerance fuzzy tough set
     def m_f_to_decision_lower(self,id1,attr_ids):##mf of id1 to [id1]d
         inf_mf = 1
         for id2 in range(self.X.shape[0]):
-            if self.relation(id1,id2,'Y') != 1:
+            if self.Y[id1] != self.Y[id2]:
                 disim = 1 - self.t_relation_per_set(id1,id2,attr_ids)
                 if  disim < inf_mf:
                     inf_mf = disim
@@ -77,7 +72,7 @@ class I_FRS:## incremental tolerance fuzzy tough set
         for id1 in range(self.X.shape[0]):
             for id2 in range(self.X.shape[0]):
                 dis_set = []
-                if self.relation(id1,id2,'Y') != 1:
+                if self.Y[id1] != self.Y[id2]:
                     for attr_id in range(self.X.shape[1]):
                         if 1 - self.relation_tensor[attr_id][id1,id2] >= self.m_f[id1]:# check if more than 
                             dis_set.append(attr_id)## if so append
@@ -203,15 +198,20 @@ class I_FRS:## incremental tolerance fuzzy tough set
         
         return red
      
-    def fit(self, X, Y, X_var = []):
+    def fit(self, X, Y, cat = [], X_var = []):
         self.Y = Y
         self.X = X
+        self.cat = cat
         if len(X_var) == 0 or len(X_var) != X.shape[1]:
             self.X_var = []
             for attr in range(self.X.shape[1]):
-                self.X_var.append(np.var(self.X[:,attr]))
+                if attr in cat:
+                    self.X_var.append(0)
+                else:
+                    self.X_var.append(np.var(self.X[:,attr]))
         else:
             self.X_var = X_var
+        
         self.reduct_attr = self.find_reduct()
 
 # this method update the reduct when there is new object getting in

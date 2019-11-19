@@ -16,32 +16,18 @@ class I_RS:## incremental tolerance fuzzy tough set
             sim  = sim * self.relation_tensor[attr_id][id1,id2]
         return sim
     
-    #this method called to generate a relation matrix, using a relation matrix help to dynamically catch the value without calculate it every time
-    # input id1: the id of first object
-    #       id2: the id of second object
-    #       attr_id: the id of the attribute
-    # similarity strategy: use guassian similarity, in order to make this similarity roubust, the initial training dataset must as representive as possible
-    #                      since the varian only calculate once in the initial dataset
-    # way to imporve: one could try to using stream mining method, create a batch for the time window, each window have its own variance
-    # output relation: the similarity of these two object in this specific attrbute
+    
     def relation_per_attr(self,id1,id2,attr_id):## return the fuzzy relation of x and y
         if self.X[id1] == self.X[id2]:
             return 1
         else:
             return 0
     
-    #this method is intend to calculate the similarity of nominal attribute and decision
-    #assumption are that decision and nominal attribute are all crisp instead of fuzzy
-    #now it only used for calculate decision, for nominal attribute calculation, still working
-    # return true if they are the same and false if not
-    def equal_Y(self,id1,id2): ## classical relation
-        return self.Y[id1] == self.Y[id2]
-    
     ##return 1 if it is in the decision class's lower approximate otherwise return 0
     def is_in_decision_lower(self,id1,attr_ids):##mf of id1 to [id1]d
         inf_mf = 1
         for id2 in range(self.X.shape[0]):
-            if not self.equal_Y(id1,id2):
+            if self.Y[id1] != self.Y[id2]:
                 disim = 1 - self.relation_per_set(id1,id2,attr_ids)
                 if  disim < inf_mf:
                     inf_mf = disim
@@ -62,7 +48,7 @@ class I_RS:## incremental tolerance fuzzy tough set
         for id1 in range(self.X.shape[0]):
             for id2 in range(self.X.shape[0]):
                 dis_set = []
-                if self.relation(id1,id2,'Y') != 1:
+                if self.Y[id1] != self.Y[id2]:
                     for attr_id in range(self.X.shape[1]):
                         if 1 - self.relation_tensor[attr_id][id1,id2] >= self.m_f[id1]:# left side euqal to 0 or 1 and right side equal to 0 or 1, since it is a crisp rough set 
                             dis_set.append(attr_id)## if so append

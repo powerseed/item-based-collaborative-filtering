@@ -2,10 +2,16 @@ import pandas as pd
 from fuzzyRoughSetCode import clustering, TFRS
 from fuzzyRoughSetCode.TFRS import I_TFRS
 
-def calculate_UX_UR(filename, decision_col, col_to_drop):
-    table = pd.read_csv('../data/' + filename)
-    table = table.drop(columns=[col_to_drop])
-
+# parameter:
+#   filename: the name of the database csv file.
+#   decision_col: the name of the decision attribute
+#   col_to_drop: column that cannot be processed when doing the reduct, like "date".
+#
+# return:
+#   col_name_reduct: the names of remaining columns after the reduct
+#   U_X: elementary sets based on the decision attribute
+#   U_R: elementary sets based on all conditional attributes
+def calculate_UX_UR(table, decision_col):
     for column in table:
         if column != decision_col:
             table[column] = clustering.cluster(table[column]).astype(str)
@@ -17,7 +23,7 @@ def calculate_UX_UR(filename, decision_col, col_to_drop):
     conditions = table.drop(columns=[decision_col]).values
 
     tfrs = I_TFRS()
-    tfrs.fit(conditions, decision)
+    tfrs.fit(conditions[:100], decision)
     reduct = tfrs.reduct_attr
     reduct = sorted(reduct)
 
@@ -28,11 +34,11 @@ def calculate_UX_UR(filename, decision_col, col_to_drop):
     values_decision = table[decision_col].unique()
     U_X = {}
     for value in values_decision:
-        U_X[value] = {}
+        U_X[value] = []
 
     index = 0
     for value in table[decision_col]:
-        U_X[value][len(U_X[value])] = index
+        U_X[value].append(index)
         index = index + 1
 
     U_R = {}
@@ -49,9 +55,9 @@ def calculate_UX_UR(filename, decision_col, col_to_drop):
             index_col_name_reduct = index_col_name_reduct + 1
 
         if not values_conditions in U_R:
-            U_R[values_conditions] = {}
+            U_R[values_conditions] = []
 
-        U_R[values_conditions][len(U_R[values_conditions])] = index
+        U_R[values_conditions].append(index)
 
     # for column in table:
     #     if column in col_name_reduct:

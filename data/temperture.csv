@@ -1,0 +1,8 @@
+﻿Case,Temperture,Headache,Weakness,Nausea,Flu
+1,very-high,Yes,Yes,No,Yes
+2,high,Yes,No,Yes,Yes
+3,normal,No,No,No,No
+4,normal,Yes,Yes,Yes,Yes
+5,high,No,Yes,No,Yes
+6,high,No,No,No,No
+7,normal,No,Yes,No,No

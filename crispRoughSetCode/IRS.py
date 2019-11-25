@@ -3,13 +3,6 @@ class I_RS:## incremental tolerance fuzzy tough set
     def __init__(self):## the use of this tolerance still not decide yet
         pass
     
-    ##return the similarity of two object by the attribute id in attr_ids
-    #input id1: the id of the first object
-    #      id2: the second object
-    #      attr_ids: the id of the attributes
-    # strtegy: since this is a fuzzy rough set, the similarity aggregation(defined as t_norm in fuzzy set theory) that we could choos from include min, max, and product
-    #          the one we pick is the product. So this method just mutiply up the similarity among all the attribute
-    # output: tnorm: is the similarity of two object in tese attribute
     def relation_per_set(self,id1,id2,attr_ids):
         sim = 1
         for attr_id in attr_ids:
@@ -22,18 +15,7 @@ class I_RS:## incremental tolerance fuzzy tough set
             return 1
         else:
             return 0
-    
-    ##return 1 if it is in the decision class's lower approximate otherwise return 0
-    def is_in_decision_lower(self,id1,attr_ids):##mf of id1 to [id1]d
-        inf_mf = 1
-        for id2 in range(self.X.shape[0]):
-            if self.Y[id1] != self.Y[id2]:
-                disim = 1 - self.relation_per_set(id1,id2,attr_ids)
-                if  disim < inf_mf:
-                    inf_mf = disim
-        return inf_mf
-    # this method  generate a matrix indicate those attributes in id1 and id2 with more disimilar degree than the membership function of id1 to its decison's lower approximate 
-    # note unlike the regular discernibility matrix, this one is not symmetric, since R(low)/d(id1) != R(low)/d(id2)            
+           
     def dis_matrix(self):
 #############################################################
 #step 1: create an empty matrix
@@ -45,14 +27,15 @@ class I_RS:## incremental tolerance fuzzy tough set
             dis_mat.append(row)
 ##############################################################
 #step 2: for each entry in the matrix, add those attrbute are disimilar more than m_f(id1)
-        for id1 in range(self.X.shape[0]):
-            for id2 in range(self.X.shape[0]):
+        for id1 in range(self.X.shape[0]-1):
+            for id2 in range(id1+1,self.X.shape[0]):
                 dis_set = []
                 if self.Y[id1] != self.Y[id2]:
                     for attr_id in range(self.X.shape[1]):
-                        if 1 - self.relation_tensor[attr_id][id1,id2] >= self.m_f[id1]:# left side euqal to 0 or 1 and right side equal to 0 or 1, since it is a crisp rough set 
+                        if self.relation_tensor[attr_id][id1,id2]  != 1:# left side euqal to 0 or 1 and right side equal to 0 or 1, since it is a crisp rough set 
                             dis_set.append(attr_id)## if so append
                     dis_mat[id1][id2] = dis_set## set it in the matrix
+                    dis_mat[id2][id1] = dis_set.copy()
         return dis_mat
 
 # this method use the discernibility matrix to find : for each attribute, the pair of object is disimilar(regard to first object's membership degree)    
@@ -61,10 +44,11 @@ class I_RS:## incremental tolerance fuzzy tough set
         for attr_id in list(range(self.X.shape[1])):#initial all the attribute with an empty set, the set will stor the pair
             dis_dict[attr_id] = set()
         dis_mat = self.dis_matrix()       
-        for row in range(len(dis_mat)):#iterate over the discernibility matrix
-            for col in range(len(dis_mat)):
+        for row in range(1,len(dis_mat)-1):#iterate over the discernibility matrix
+            for col in range(row,len(dis_mat)):
                 for attr in dis_mat[row][col]:
                     dis_dict[attr].add((row,col))#add the pair
+                    dis_dict[attr].add((col,row))
         return dis_dict  
     
 # calculate the relation(similarity) among the object, for each attribute, a catch memory to speed up
@@ -112,12 +96,6 @@ class I_RS:## incremental tolerance fuzzy tough set
 ##################################################################
 # step 1: calculate the relation tensor 
         self.calculate_relation()
-##################################################################
-# step 2: calculate the membership function of each object to its decision class's lower approximation
-        self.m_f = []
-        for id1 in range(self.X.shape[0]):
-            self.m_f.append(self.is_in_decision_lower(id1,list(range(self.X.shape[1]))))
-##################################################################
 # step 3: calculate the discernibility set [(x1,x2)] for each attribute and the combination of each attribute
 #         the discernibility of the combination set of all the attribute is the union of discernibility of each attributes
         self.dis_dict = self.discernibility()
@@ -174,15 +152,9 @@ class I_RS:## incremental tolerance fuzzy tough set
         
         return red
      
-    def fit(self, X, Y, X_var = []):
+    def fit(self, X, Y):
         self.Y = Y
         self.X = X
-        if len(X_var) == 0 or len(X_var) != X.shape[1]:
-            self.X_var = []
-            for attr in range(self.X.shape[1]):
-                self.X_var.append(np.var(self.X[:,attr]))
-        else:
-            self.X_var = X_var
         self.reduct_attr = self.find_reduct()
 
 # this method update the reduct when there is new object getting in
@@ -255,19 +227,7 @@ class I_RS:## incremental tolerance fuzzy tough set
         self.Y = self.Y[1:]
         self.X = self.X[1:,:]
         self.m_f.remove(self.m_f[0])
-        delete_row = self.relation_trim()
-        for id1 in range(self.X.shape[0]):
-            if self.Y[id1] == drop_y:
-                pass
-            else:
-                sim = 0
-                for attr in range(len(delete_row)):
-                    sim = sim + delete_row[attr][0,id1+1]
-                sim = sim/self.X.shape[1]
-                if 1 - sim <= self.m_f[id1]:
-                    self.m_f[id1] = self.is_in_decision_lower(id1,list(range(self.X.shape[1])))
-                else:
-                    pass
+        self.relation_trim()
         for attr_id in self.dis_dict:
             pairs = self.dis_dict[attr_id]
             new_pairs = set()
@@ -297,26 +257,7 @@ class I_RS:## incremental tolerance fuzzy tough set
         drop_y = self.Y[:by]
         self.Y = self.Y[by:]
         self.X = self.X[by:,:]
-        for i in range(by):
-           self.m_f.remove(self.m_f[0])
-        delete_row = self.relation_trim(by = by)
-        for id1 in range(self.X.shape[0]):
-            change = False
-            for delete_id in range(by):
-                if self.Y[id1] == drop_y[delete_id]:
-                    pass
-                else:
-                    sim = 0
-                    for attr in range(len(delete_row)):
-                        sim = sim + delete_row[attr][delete_id,id1+by] 
-                    sim = sim / self.X.shape[1]
-                    if 1 - sim <= self.m_f[id1]:
-                        change = True
-                        break
-                    else:
-                        pass
-            if change:
-                self.m_f[id1] = self.is_in_decision_lower(id1,list(range(self.X.shape[1])))  
+        self.relation_trim(by = by) 
         for attr_id in self.dis_dict:
             pairs = self.dis_dict[attr_id]
             new_pairs = set()
@@ -384,21 +325,6 @@ class I_RS:## incremental tolerance fuzzy tough set
                 sim = self.relation_per_attr(id1,-1,attr_id)
                 self.relation_tensor[attr_id][id1,-1] = sim
                 self.relation_tensor[attr_id][-1,id1] = sim
-        #calculate the membership function of the new instance to its decision class's lower approximate
-        self.m_f.append(self.is_in_decision_lower(-1,list(range(self.X.shape[1]))))#note index -1 means the last element
-#       update the membership function of each instance to their decision class's lower approximate   
-#       strategy for last row: we know m_f/d(x) <= 1 - R(x,y) for those y not agree with x in decision, here x denote the exist instance(not the new one)
-#                              then if decision of x == decision of newX, then m_f/d(x) is unchanged
-#                              if not agree on decision then m_f/d(x) = min(m_f/d(x), 1 - R(x,newX))        
-        for id1 in range(self.X.shape[0]-1):
-            if self.Y[id1] == newY:
-                pass
-            else:
-                dism = 1 - self.relation_per_set(id1,-1,list(range(self.X.shape[1])))
-                if self.m_f[id1] <= dism:
-                    pass
-                else:
-                    self.m_f[id1] = dism
 # step3 update the discernibility set for all attribute this step only update those including newX
 # for each id1 in the old universe(before newX comein)
 #        for attribute a:
@@ -408,15 +334,13 @@ class I_RS:## incremental tolerance fuzzy tough set
         for id1 in range(self.X.shape[0]-1):
             for attr_id in self.dis_dict:
                 if self.Y[id1] != self.Y[-1]:
-                    if 1- self.relation_tensor[attr_id][id1,-1] >= self.m_f[id1]:
+                    if self.relation_tensor[attr_id][id1,-1] != 1:
                         self.dis_dict[attr_id].add((id1,self.X.shape[0]-1))
-                        self.dis_all.add((id1,self.X.shape[0]-1))
-                        if attr_id in self.reduct_attr:
-                            self.dis_red.add((id1,self.X.shape[0]-1))
-                    if 1- self.relation_tensor[attr_id][id1,-1] >= self.m_f[self.X.shape[0]-1]:
                         self.dis_dict[attr_id].add((self.X.shape[0]-1,id1))
+                        self.dis_all.add((id1,self.X.shape[0]-1))
                         self.dis_all.add((self.X.shape[0]-1,id1))
                         if attr_id in self.reduct_attr:
+                            self.dis_red.add((id1,self.X.shape[0]-1))
                             self.dis_red.add((self.X.shape[0]-1,id1))
 # step4 update the discernibility set for all attribute this step update those not include newX, as newX come in, things change
 #       since we update some membership degree when new instance comes in, there is a new threshold
@@ -427,16 +351,6 @@ class I_RS:## incremental tolerance fuzzy tough set
 #                here d(id1) != d(newX) means m_f/d(id1) might change in the last step, we need to update
 #                     d(id1) != d(id2) means they will be discerned by some attribute
 #                and add the pair like what we do before for the initial data   
-        for attr_id in self.dis_dict:
-            for id1 in range(self.X.shape[0]-1):
-                for id2 in range(self.X.shape[0]-1):
-                    if not (id1,id2) in self.dis_dict[attr_id]:
-                        if self.Y[id1] != self.Y[id2] and self.Y[id1] != self.Y[-1]:
-                            if 1 - self.relation_tensor[attr_id][id1,id2] >= self.m_f[id1]:
-                                 self.dis_dict[attr_id].add((id1,id2))
-                                 self.dis_all.add((id1,id2))
-                                 if attr_id in self.reduct_attr:
-                                      self.dis_red.add((id1,self.X.shape[0]-1))
         self.update_reduct()
                 
     def update_group(self,newX,newY):
@@ -455,80 +369,72 @@ class I_RS:## incremental tolerance fuzzy tough set
                     sim = self.relation_per_attr(id1,id2,attr_id)
                     self.relation_tensor[attr_id][id1,id2] = sim
                     self.relation_tensor[attr_id][id2,id1] = sim
-        for id1 in range(self.X.shape[0] - newX.shape[0], self.X.shape[0]):
-            self.m_f.append(self.is_in_decision_lower(id1,list(range(self.X.shape[1]))))
-        for id1 in range(self.X.shape[0] - newX.shape[0]):
-            for id2 in range(self.X.shape[0] - newX.shape[0], self.X.shape[0]):
-                if self.Y[id1] == self.Y[id2]:
-                    pass
-                else:
-                    dism = 1 - self.relation_per_set(id1,id2,list(range(self.X.shape[1])))
-                    if self.m_f[id1] <= dism:
-                        pass
-                    else:
-                        self.m_f[id1] = dism
         for id1 in range(self.X.shape[0] - newX.shape[0]):
             for id2 in range(self.X.shape[0] - newX.shape[0], self.X.shape[0]):
                 for attr_id in self.dis_dict:
                     if self.Y[id1] != self.Y[id2]:
-                        if 1- self.relation_tensor[attr_id][id1,id2] >= self.m_f[id1]:
+                        if self.relation_tensor[attr_id][id1,id2] != 1:
                             self.dis_dict[attr_id].add((id1,id2))
                             self.dis_all.add((id1,id2))
-                            if attr_id in self.reduct_attr:
-                                self.dis_red.add((id1,id2))
-                        if 1- self.relation_tensor[attr_id][id1,id2] >= self.m_f[id2]:
                             self.dis_dict[attr_id].add((id2,id1))
                             self.dis_all.add((id2,id1))
                             if attr_id in self.reduct_attr:
-                                self.dis_red.add((id2,id1))
+                                self.dis_red.add((id1,id2))
+                                self.dis_red.add((id2,id1))                                
         for attr_id in self.dis_dict:
-            for id1 in range(self.X.shape[0] - newX.shape[0]):
-                for id2 in range(self.X.shape[0] - newX.shape[0], self.X.shape[0]):
+            for id1 in range(self.X.shape[0] - newX.shape[0], self.X.shape[0]-1):
+                for id2 in range(id1, self.X.shape[0]):
                     if self.Y[id1] != self.Y[id2]:
-                        if 1- self.relation_tensor[attr_id][id1,id2] >= self.m_f[id1]:
+                        if self.relation_tensor[attr_id][id1,id2] != 1:
                             self.dis_dict[attr_id].add((id1,id2))
                             self.dis_all.add((id1,id2))
+                            self.dis_dict[attr_id].add((id2,id1))
+                            self.dis_all.add((id2,id1))
                             if attr_id in self.reduct_attr:
                                 self.dis_red.add((id1,id2))
-        for attr_id in self.dis_dict:
-            for id1 in range(self.X.shape[0] - newX.shape[0]):
-                for id2 in range(self.X.shape[0] - newX.shape[0]):
-                    if not (id1,id2) in self.dis_dict[attr_id]:
-                        if self.Y[id1] != self.Y[id2]:
-                            if 1 - self.relation_tensor[attr_id][id1,id2] >= self.m_f[id1]:
-                                 self.dis_dict[attr_id].add((id1,id2))
-                                 self.dis_all.add((id1,id2))
-                                 if attr_id in self.reduct_attr:
-                                     self.dis_red.add((id1,id2))
+                                self.dis_red.add((id2,id1)) 
         self.update_reduct()
 
    
 class VIRS:## vote fuzzy rough set
     def __init__(self,batch_size):
         self.batch_size = batch_size
-    def fit(self,X,Y, X_var = []):
+    def fit(self,X,Y):
         if X.shape[0]%self.batch_size == 0:
             self.child_num = int(X.shape[0]/self.batch_size)
         else:
             self.child_num = int(X.shape[0]/self.batch_size) + 1
         self.child_list = []
-        if len(X_var) == 0 or len(X_var) != self.X.shape[1]:
-            self.X_var = []
-            for i in range(X.shape[1]):
-                self.X_var.append(np.var(X[:,i]))
-        else:
-            self.X_var = X_var
         for i in range(self.child_num):
             tfrs = I_RS()
-            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],self.X_var)
+            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])])
             self.child_list.append(tfrs)
     def update(self,newX,newY):
         if self.child_list[self.child_num-1].size() < self.batch_size:
             self.child_list[self.child_num-1].update(newX,newY)
         else:
             tfrs = I_RS()
-            tfrs.fit(newX,newY,self.X_var)
+            tfrs.fit(newX,newY)
             self.child_num = self.child_num + 1
+            self.child_list.append(tfrs)
+    def update_group(self, newX, newY):
+        if self.child_list[self.child_num-1].size() + newX.shape[0] <= self.batch_size:
+            self.child_list[self.child_num-1].update(newX,newY)
+        else:
+            first_half = self.batch_size - self.child_list[self.child_num-1].size()
+            self.child_list[self.child_num-1].update_group(newX[:first_half],newY[:first_half])
+            newX = newX[first_half:]
+            newY = newY[first_half:]
+            while newX.shape[0] > self.batch_size:
+                self.child_num = self.child_num + 1
+                tfrs = I_RS()
+                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size])
+                self.child_list.append(tfrs)
+                newX = newX[self.batch_size:]
+                newY = newY[self.batch_size:]
+            self.child_num = self.child_num + 1
+            tfrs = I_RS()
+            tfrs.fit(newX,newY)
             self.child_list.append(tfrs)
     def return_reduct(self):
         reduct_list = []
@@ -538,23 +444,75 @@ class VIRS:## vote fuzzy rough set
     ##voting style
     def predict(self,newX):
         pass
-        
-class TFVRS:## time fading vote fuzzy rough set
-    def __init__(self,batch_size, fading_factor):
+class ISwRS:## vote fuzzy rough set
+    def __init__(self,batch_size,window_size):
         self.batch_size = batch_size
-        self.fading_factor = fading_factor
-    def fit(self,X,Y, X_var = []):
+        self.window_size = window_size
+    def fit(self,X,Y):
         if X.shape[0]%self.batch_size == 0:
             self.child_num = int(X.shape[0]/self.batch_size)
         else:
             self.child_num = int(X.shape[0]/self.batch_size) + 1
         self.child_list = []
-        if len(X_var) == 0 or len(X_var) != self.X.shape[1]:
-            self.X_var = []
-            for i in range(X.shape[1]):
-                self.X_var.append(np.var(X[:,i]))
+        for i in range(self.child_num):
+            tfrs = I_RS()
+            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])])
+            self.child_list.append(tfrs)
+        if self.child_num > self.window_size+1:
+            num_to_delete = self.child_num - self.window_size-1
+            for i in range(num_to_delete):
+                self.child_list.remove(self.child_list[0])
+    def update(self,newX,newY):
+        if self.child_list[self.child_num-1].size() < self.batch_size:
+            self.child_list[self.child_num-1].update(newX,newY)
         else:
-            self.X_var = X_var
+            tfrs = I_RS()
+            tfrs.fit(newX,newY)
+            self.child_list.append(tfrs)
+            self.child_num = self.child_num + 1
+            if self.child_num > self.window_size + 1:
+                self.child_list.remove(self.child_list[0])
+    def update_group(self,newX,newY):
+        if self.child_list[self.child_num-1].size() + newX.shape[0] <= self.batch_size:
+            self.child_list[self.child_num-1].update(newX,newY)
+        else:
+            first_half = self.batch_size - self.child_list[self.child_num-1].size()
+            self.child_list[self.child_num-1].update_group(newX[:first_half],newY[:first_half])
+            newX = newX[first_half:]
+            newY = newY[first_half:]
+            while newX.shape[0] > self.batch_size:
+                tfrs = I_RS()
+                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size])
+                self.child_list.append(tfrs)
+                self.child_num = self.child_num + 1
+                newX = newX[self.batch_size:]
+                newY = newY[self.batch_size:]
+            tfrs = I_RS()
+            tfrs.fit(newX,newY)
+            self.child_list.append(tfrs)  
+            self.child_num = self.child_num + 1
+            if self.child_num > self.window_size + 1:
+                child_to_delete = self.child_num - (self.window_size+1)
+                for i in range(child_to_delete):
+                    self.child_list.remove(self.child_list[0])
+    def return_reduct(self):
+        reduct_list = []
+        for i in range(self.child_num):
+            reduct_list.append(self.child_list[i].reduct_attr)
+        return reduct_list
+    ##voting style
+    def predict(self,newX):
+        pass
+class TFVRS:## time fading vote fuzzy rough set
+    def __init__(self,batch_size, fading_factor):
+        self.batch_size = batch_size
+        self.fading_factor = fading_factor
+    def fit(self,X,Y):
+        if X.shape[0]%self.batch_size == 0:
+            self.child_num = int(X.shape[0]/self.batch_size)
+        else:
+            self.child_num = int(X.shape[0]/self.batch_size) + 1
+        self.child_list = []
         for i in range(self.child_num):
             tfrs = I_RS()
             tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],self.X_var)
@@ -564,8 +522,27 @@ class TFVRS:## time fading vote fuzzy rough set
             self.child_list[self.child_num-1].update(newX,newY)
         else:
             tfrs = I_RS()
-            tfrs.fit(newX,newY,self.X_var)
+            tfrs.fit(newX,newY)
             self.child_num = self.child_num + 1
+            self.child_list.append(tfrs)
+    def update_group(self, newX, newY):
+        if self.child_list[self.child_num-1].size() + newX.shape[0] <= self.batch_size:
+            self.child_list[self.child_num-1].update(newX,newY)
+        else:
+            first_half = self.batch_size - self.child_list[self.child_num-1].size()
+            self.child_list[self.child_num-1].update_group(newX[:first_half],newY[:first_half])
+            newX = newX[first_half:]
+            newY = newY[first_half:]
+            while newX.shape[0] > self.batch_size:
+                self.child_num = self.child_num + 1
+                tfrs = I_RS()
+                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size])
+                self.child_list.append(tfrs)
+                newX = newX[self.batch_size:]
+                newY = newY[self.batch_size:]
+            self.child_num = self.child_num + 1
+            tfrs = I_RS()
+            tfrs.fit(newX,newY)
             self.child_list.append(tfrs)
     def return_reduct(self):
         reduct_list = []

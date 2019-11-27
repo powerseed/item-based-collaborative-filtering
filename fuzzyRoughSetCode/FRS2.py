@@ -11,10 +11,10 @@ class I_FRS:## incremental tolerance fuzzy tough set
     #          the one we pick is the product. So this method just mutiply up the similarity among all the attribute
     # output: tnorm: is the similarity of two object in tese attribute
     def t_relation_per_set(self,id1,id2,attr_ids):
-        t_norm = 0
+        t_norm = 1
         for attr_id in attr_ids:
-            t_norm  = t_norm + self.relation_tensor[attr_id][id1,id2]
-        return t_norm/len(attr_ids)
+            t_norm  = min(t_norm , self.relation_tensor[attr_id][id1,id2])
+        return t_norm
     #this method called to generate a relation matrix, using a relation matrix help to dynamically catch the value without calculate it every time
     # input id1: the id of first object
     #       id2: the id of second object
@@ -29,7 +29,7 @@ class I_FRS:## incremental tolerance fuzzy tough set
                 return 1
             else:
                 return 0
-        relation = np.exp(-((self.X[id1,attr_id] - self.X[id2,attr_id])**2)/(2*self.X_var[attr_id]))
+        relation = 1 - np.abs(self.X[id1,attr_id] - self.X[id2,attr_id])/np.abs(self.X_max[attr_id] - self.X_min[attr_id])
         if np.isnan(relation):##just in case variance is 0, then it make sense that they are the same 
             relation = 1
         return relation
@@ -201,18 +201,18 @@ class I_FRS:## incremental tolerance fuzzy tough set
         self.Y = Y
         self.X = X
         self.cat = cat
-        if len(X_var) == 0 or len(X_var) != X.shape[1]:
-            self.X_var = []
-            for attr in range(self.X.shape[1]):
-                if attr in cat:
-                    self.X_var.append(0)
-                else:
-                    self.X_var.append(np.var(self.X[:,attr]))
-        else:
-            self.X_var = X_var
+        self.X_max = []
+        self.X_min = []
+        for attr in range(self.X.shape[1]):
+            if attr in cat:
+                self.X_max.append(0)
+                self.X_min.append(0)
+            else:
+                self.X_max.append(np.max(self.X[:,attr]))
+                self.X_min.append(np.min(self.X[:,attr]))
         
         self.reduct_attr = self.find_reduct()
-        self.minimum_rule_finding()
+
 # this method update the reduct when there is new object getting in
 # note the new object already added into the self.X, access it by self.X[-1]
 # step 1 this method initialize the new reduct by the current reduct, then calculate the dis(new_reduct)
@@ -507,67 +507,42 @@ class I_FRS:## incremental tolerance fuzzy tough set
                                  if attr_id in self.reduct_attr:
                                      self.dis_red.add((id1,id2))
         self.update_reduct()
-    def minimum_rule_finding(self):
-        self.all_rule = []
-        for decision in np.unique(self.Y):
-            index_d = np.where(self.Y == decision)[0]
-            mf_d = np.array(self.m_f)[index_d]
-            max_to_low_index = np.flip(np.argsort(mf_d)).tolist()# this is an index to index_d
-            rule_object = index_d.tolist().copy()
-            index1 = 0
-            while index1 < len(max_to_low_index)-1:
-                if index_d[max_to_low_index[index1]] in rule_object:
-                    cover = 0
-                    index2 = index1 + 1
-                    while index2 < len(max_to_low_index):
-                        if index_d[max_to_low_index[index2]] in rule_object:
-                            id1 = index_d[max_to_low_index[index1]]
-                            id2 = index_d[max_to_low_index[index2]]
-                            if 1 - self.t_relation_per_set(id1,id2,self.reduct_attr) < self.m_f[id1]:
-                                rule_object.remove(id2)
-                                cover = cover + 1
-                        index2 = index2 + 1
-                    self.all_rule.append([index_d[max_to_low_index[index1]],cover,decision])    
-                index1 = index1 + 1
-         
             
-            
-            
-# predict the decion of the newX
-# simply calculate the membership degree of newX to each dicision class's lower approximate
-# and the one with higher degree will get predicted                   
+## predict the decion of the newX
+## simply calculate the membership degree of newX to each dicision class's lower approximate
+## and the one with higher degree will get predicted                   
     def predict(self,newX):
-        candidate = []
-        max_sim_rule = None
-        max_sim = 0
-        for rule in self.all_rule:
-            id1 = rule[0]
-            sim = 0
+        disim = []
+        for id1 in range(self.X.shape[0]):
+            sim = 1
             for attr in self.reduct_attr:
                 if attr in self.cat:
                     if newX[attr] == self.X[id1,attr]:
-                        sim = sim + 1
+                        sim = sim
+                    else:
+                        sim = 0
+                        break
                 else:
-                    relation = np.exp(-(newX[attr] - self.X[id1,attr])**2/(2*self.X_var[attr]))
+                    if newX[attr] >= self.X_max[attr]:
+                        relation = 1 - np.abs(self.X[id1,attr]-self.X_max[attr])/np.abs(self.X_max[attr] - self.X_min[attr])
+                    elif newX[attr] <= self.X_min[attr]:
+                        relation = 1 - np.abs(self.X[id1,attr]-self.X_min[attr])/np.abs(self.X_max[attr] - self.X_min[attr])
+                    else:
+                        relation = 1 - np.abs(self.X[id1,attr]-newX[attr])/np.abs(self.X_max[attr] - self.X_min[attr])
                     if np.isnan(relation):##just in case variance is 0, then it make sense that they are the same 
                         relation = 1
-                sim  = sim + relation
-            sim = sim/len(self.reduct_attr)
-            if 1 - sim < self.m_f[id1]:
-                candidate.append(rule)
-            if sim > max_sim:
-                max_sim = sim
-                max_sim_rule = rule
-        if len(candidate) > 0:
-            max_cover = -1
-            decision = None         
-            for rule in candidate:
-                if rule[1] > max_cover:
-                    max_cover = rule[1]
-                    decision = rule[2]
-            return decision,max_cover
-        else:
-            return max_sim_rule[2],0
+                    sim  = min(sim,relation)
+            disim.append(1-sim)
+        best_decision = None
+        max_mf = 0
+        disim = np.array(disim)
+        for d in np.unique(self.Y):
+            index = np.where(self.Y != d)[0].tolist()
+            mf = np.min(disim[index])
+            if mf > max_mf:
+                best_decision = d
+                max_mf = mf
+        return best_decision,max_mf 
 
     
     def size(self):
@@ -584,25 +559,16 @@ class IVMRS:## vote fuzzy rough set
             self.child_num = int(X.shape[0]/self.batch_size) + 1
         self.child_list = []
         self.cat = cat
-        if len(X_var) == 0 or len(X_var) != self.X.shape[1]:
-            self.X_var = []
-            for i in range(X.shape[1]):
-                if i in cat:
-                    self.X_var.append(0)
-                else:
-                    self.X_var.append(np.var(X[:,i]))
-        else:
-            self.X_var = X_var
         for i in range(self.child_num):
             tfrs = I_FRS()
-            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],X_var = self.X_var, cat = self.cat)
+            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])], cat = self.cat)
             self.child_list.append(tfrs)
     def update(self,newX,newY):
         if self.child_list[self.child_num-1].size() < self.batch_size:
             self.child_list[self.child_num-1].update(newX,newY)
         else:
             tfrs = I_FRS()
-            tfrs.fit(newX,newY,X_var = self.X_var, cat = self.cat)
+            tfrs.fit(newX,newY, cat = self.cat)
             self.child_num = self.child_num + 1
             self.child_list.append(tfrs)
     def update_group(self, newX, newY):
@@ -616,13 +582,13 @@ class IVMRS:## vote fuzzy rough set
             while newX.shape[0] > self.batch_size:
                 self.child_num = self.child_num + 1
                 tfrs = I_FRS()
-                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size], X_var = self.X_var, cat = self.cat)
+                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size], cat = self.cat)
                 self.child_list.append(tfrs)
                 newX = newX[self.batch_size:]
                 newY = newY[self.batch_size:]
             self.child_num = self.child_num + 1
             tfrs = I_FRS()
-            tfrs.fit(newX,newY, X_var = self.X_var, cat = self.cat)
+            tfrs.fit(newX,newY, cat = self.cat)
             self.child_list.append(tfrs)
     def return_reduct(self):
         reduct_list = []
@@ -631,32 +597,34 @@ class IVMRS:## vote fuzzy rough set
         return reduct_list
     ##voting style
     def predict(self,newX):
-        decision_dict = {}
-        for child in self.child_list:
-            decision,cover = child.predict(newX)
-            if decision in decision_dict:
-                decision_dict[decision][0] = decision_dict[decision][0] + 1
-                decision_dict[decision][1] = decision_dict[decision][1] + cover
+        predictions = {}
+        for i in range(self.child_num):
+            prediction,mf = self.child_list[i].predict(newX)
+            if prediction in predictions:
+                predictions[prediction][0] = predictions[prediction][0] + 1
+                predictions[prediction][1] = predictions[prediction][1] + mf
             else:
-                decision_dict[decision] = [1,cover]
-        candidate_decision = []
-        max_vote = 0
-        for decision in decision_dict:
-            if decision_dict[decision][0] > max_vote:
-                candidate_decision = [[decision,decision_dict[decision][1]]]
-                max_vote = decision_dict[decision][0]
-            elif decision_dict[decision][0] == max_vote:
-                candidate_decision.append([decision,decision_dict[decision][1]])
-        if len(candidate_decision) == 1:
-            return candidate_decision[0][0]
+                predictions[prediction] = [1,mf]
+        max_key = []
+        max_support = 0
+        for key in predictions:
+            if predictions[key][0] > max_support:
+                max_key = [key]
+                max_support = predictions[key][0]
+            elif predictions[key][0] == max_support:
+                max_key.append(key)
+            else:
+                pass
+        if len(max_key) == 1:
+            return max_key[0]
         else:
-            max_cover = 0
-            decision = None
-            for candidate in candidate_decision:
-                if candidate[1] > max_cover:
-                    decision = candidate[0]
-            return decision
-    
+            max_mf = 0
+            prediction = None
+            for i in range(len(max_key)):
+                if predictions[max_key[i]][1] > max_mf:
+                    max_mf = predictions[max_key[i]][1]
+                    prediction = max_key[i]
+            return prediction
 class ISwMRS:## vote fuzzy rough set
     def __init__(self,batch_size,window_size):
         self.batch_size = batch_size
@@ -668,18 +636,9 @@ class ISwMRS:## vote fuzzy rough set
             self.child_num = int(X.shape[0]/self.batch_size) + 1
         self.child_list = []
         self.cat = cat
-        if len(X_var) == 0 or len(X_var) != self.X.shape[1]:
-            self.X_var = []
-            for i in range(X.shape[1]):
-                if i in cat:
-                    self.X_var.append(0)
-                else:
-                    self.X_var.append(np.var(X[:,i]))
-        else:
-            self.X_var = X_var
         for i in range(self.child_num):
             tfrs = I_FRS()
-            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],X_var = self.X_var, cat = self.cat)
+            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])], cat = self.cat)
             self.child_list.append(tfrs)
         if self.child_num > self.window_size+1:
             num_to_delete = self.child_num - self.window_size-1
@@ -691,7 +650,7 @@ class ISwMRS:## vote fuzzy rough set
             self.child_list[self.child_num-1].update(newX,newY)
         else:
             tfrs = I_FRS()
-            tfrs.fit(newX,newY,X_var = self.X_var, cat = self.cat)
+            tfrs.fit(newX,newY, cat = self.cat)
             self.child_list.append(tfrs)
             self.child_num = self.child_num + 1
             if self.child_num > self.window_size + 1:
@@ -707,13 +666,13 @@ class ISwMRS:## vote fuzzy rough set
             newY = newY[first_half:]
             while newX.shape[0] > self.batch_size:
                 tfrs = I_FRS()
-                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size], X_var = self.X_var, cat = self.cat)
+                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size],  cat = self.cat)
                 self.child_list.append(tfrs)
                 self.child_num = self.child_num + 1
                 newX = newX[self.batch_size:]
                 newY = newY[self.batch_size:]
             tfrs = I_FRS()
-            tfrs.fit(newX,newY, X_var = self.X_var, cat = self.cat)
+            tfrs.fit(newX,newY,  cat = self.cat)
             self.child_list.append(tfrs)  
             self.child_num = self.child_num + 1
             if self.child_num > self.window_size + 1:
@@ -727,61 +686,35 @@ class ISwMRS:## vote fuzzy rough set
             reduct_list.append(self.child_list[i].reduct_attr)
         return reduct_list
     ##voting style
-#    def predict(self,newX):
-#        predictions = {}
-#        for i in range(self.child_num):
-#            prediction,mf = self.child_list[i].predict(newX)
-#            if prediction in predictions:
-#                predictions[prediction][0] = predictions[prediction][0] + 1
-#                predictions[prediction][1] = predictions[prediction][1] + mf
-#            else:
-#                predictions[prediction] = [1,mf]
-#        max_key = []
-#        max_support = 0
-#        for key in predictions:
-#            if predictions[key][0] > max_support:
-#                max_key = [key]
-#                max_support = predictions[key][0]
-#            elif predictions[key][0] == max_support:
-#                max_key.append(key)
-#            else:
-#                pass
-#        if len(max_key) == 1:
-#            return max_key[0]
-#        else:
-#            max_mf = 0
-#            prediction = None
-#            for i in range(len(max_key)):
-#                if predictions[max_key[i]][1] > max_mf:
-#                    max_mf = predictions[max_key[i]][1]
-#                    prediction = max_key[i]
-#            return prediction  
     def predict(self,newX):
-        decision_dict = {}
-        for i in len(self.child_list):
-            decision,cover = self.child_list[i].predict(newX)
-            if decision in decision_dict:
-                decision_dict[decision][0] = decision_dict[decision][0] + 1
-                decision_dict[decision][1] = decision_dict[decision][1] + cover
+        predictions = {}
+        for i in range(self.child_num):
+            prediction,mf = self.child_list[i].predict(newX)
+            if prediction in predictions:
+                predictions[prediction][0] = predictions[prediction][0] + 1
+                predictions[prediction][1] = predictions[prediction][1] + mf
             else:
-                decision_dict[decision] = [1,cover]
-        candidate_decision = []
-        max_vote = 0
-        for decision in decision_dict:
-            if decision_dict[decision][0] > max_vote:
-                candidate_decision = [[decision,decision_dict[decision][1]]]
-                max_vote = decision_dict[decision][0]
-            elif decision_dict[decision][0] == max_vote:
-                candidate_decision.append([decision,decision_dict[decision][1]])
-        if len(candidate_decision) == 1:
-            return candidate_decision[0][0]
+                predictions[prediction] = [1,mf]
+        max_key = []
+        max_support = 0
+        for key in predictions:
+            if predictions[key][0] > max_support:
+                max_key = [key]
+                max_support = predictions[key][0]
+            elif predictions[key][0] == max_support:
+                max_key.append(key)
+            else:
+                pass
+        if len(max_key) == 1:
+            return max_key[0]
         else:
-            max_cover = 0
-            decision = None
-            for candidate in candidate_decision:
-                if candidate[1] > max_cover:
-                    decision = candidate[0]
-            return decision
+            max_mf = 0
+            prediction = None
+            for i in range(len(max_key)):
+                if predictions[max_key[i]][1] > max_mf:
+                    max_mf = predictions[max_key[i]][1]
+                    prediction = max_key[i]
+            return prediction  
 class TFMRS:## time fading vote fuzzy rough set
     def __init__(self,batch_size, fading_factor):
         self.batch_size = batch_size
@@ -793,25 +726,16 @@ class TFMRS:## time fading vote fuzzy rough set
             self.child_num = int(X.shape[0]/self.batch_size) + 1
         self.child_list = []
         self.cat = cat
-        if len(X_var) == 0 or len(X_var) != self.X.shape[1]:
-            self.X_var = []
-            for i in range(X.shape[1]):
-                if i in cat:
-                    self.X_var.append(0)
-                else:
-                    self.X_var.append(np.var(X[:,i]))
-        else:
-            self.X_var = X_var
         for i in range(self.child_num):
             tfrs = I_FRS()
-            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])], X_var = self.X_var, cat = self.cat)
+            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])], cat = self.cat)
             self.child_list.append(tfrs)
     def update(self,newX,newY):
         if self.child_list[self.child_num-1].size() < self.batch_size:
             self.child_list[self.child_num-1].update(newX,newY)
         else:
             tfrs = I_FRS()
-            tfrs.fit(newX,newY,self.X_var, X_var = self.X_var, cat = self.cat)
+            tfrs.fit(newX,newY, cat = self.cat)
             self.child_num = self.child_num + 1
             self.child_list.append(tfrs)
     def update_group(self, newX, newY):
@@ -825,43 +749,46 @@ class TFMRS:## time fading vote fuzzy rough set
             while newX.shape[0] > self.batch_size:
                 self.child_num = self.child_num + 1
                 tfrs = I_FRS()
-                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size], X_var = self.X_var, cat = self.cat)
+                tfrs.fit(newX[:self.batch_size],newY[:self.batch_size], cat = self.cat)
                 self.child_list.append(tfrs)
                 newX = newX[self.batch_size:]
                 newY = newY[self.batch_size:]
             self.child_num = self.child_num + 1
             tfrs = I_FRS()
-            tfrs.fit(newX,newY, X_var = self.X_var, cat = self.cat)
+            tfrs.fit(newX,newY, cat = self.cat)
             self.child_list.append(tfrs)
     def return_reduct(self):
         reduct_list = []
         for i in range(self.child_num):
             reduct_list.append(self.child_list[i].reduct_attr)
-        return reduct_list 
-    
+        return reduct_list
     def predict(self,newX):
-        decision_dict = {}
-        for i in range(len(self.child_list)):
-            decision,cover = self.child_list[i].predict(newX)
-            if decision in decision_dict:
-                decision_dict[decision][0] = decision_dict[decision][0] + self.fading_factor**(self.child_num-(i+1))
-                decision_dict[decision][1] = decision_dict[decision][1] + cover
+        predictions = {}
+        for i in range(self.child_num):
+            prediction,mf = self.child_list[i].predict(newX)
+            if prediction in predictions:
+                predictions[prediction][0] = predictions[prediction][0] + self.fading_factor**(self.child_num-(i+1))
+                predictions[prediction][1] = predictions[prediction][1] + mf
             else:
-                decision_dict[decision] = [1,cover]
-        candidate_decision = []
-        max_vote = 0
-        for decision in decision_dict:
-            if decision_dict[decision][0] > max_vote:
-                candidate_decision = [[decision,decision_dict[decision][1]]]
-                max_vote = decision_dict[decision][0]
-            elif decision_dict[decision][0] == max_vote:
-                candidate_decision.append([decision,decision_dict[decision][1]])
-        if len(candidate_decision) == 1:
-            return candidate_decision[0][0]
+                predictions[prediction] = [1,mf] 
+        max_key = []
+        max_support = 0
+        for key in predictions:
+            if predictions[key][0] > max_support:
+                max_key = [key]
+                max_support = predictions[key][0]
+            elif predictions[key][0] == max_support:
+                max_key.append(key)
+            else:
+                pass
+        if len(max_key) == 1:
+            return max_key[0]
         else:
-            max_cover = 0
-            decision = None
-            for candidate in candidate_decision:
-                if candidate[1] > max_cover:
-                    decision = candidate[0]
-            return decision
+            max_mf = 0
+            prediction = None
+            for i in range(len(max_key)):
+                if predictions[max_key[i]][1] > max_mf:
+                    max_mf = predictions[max_key[i]][1]
+                    prediction = max_key[i]
+            return prediction    # -*- coding: utf-8 -*-
+

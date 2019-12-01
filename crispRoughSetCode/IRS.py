@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 class I_RS:## incremental tolerance fuzzy tough set
     def __init__(self):## the use of this tolerance still not decide yet
         pass
@@ -11,7 +12,7 @@ class I_RS:## incremental tolerance fuzzy tough set
     
     
     def relation_per_attr(self,id1,id2,attr_id):## return the fuzzy relation of x and y
-        if self.X[id1] == self.X[id2]:
+        if self.X[id1,attr_id] == self.X[id2,attr_id]:
             return 1
         else:
             return 0
@@ -35,7 +36,7 @@ class I_RS:## incremental tolerance fuzzy tough set
                         if self.relation_tensor[attr_id][id1,id2]  != 1:# left side euqal to 0 or 1 and right side equal to 0 or 1, since it is a crisp rough set 
                             dis_set.append(attr_id)## if so append
                     dis_mat[id1][id2] = dis_set## set it in the matrix
-                    dis_mat[id2][id1] = dis_set.copy()
+                    dis_mat[id1][id2] = dis_set
         return dis_mat
 
 # this method use the discernibility matrix to find : for each attribute, the pair of object is disimilar(regard to first object's membership degree)    
@@ -48,7 +49,6 @@ class I_RS:## incremental tolerance fuzzy tough set
             for col in range(row,len(dis_mat)):
                 for attr in dis_mat[row][col]:
                     dis_dict[attr].add((row,col))#add the pair
-                    dis_dict[attr].add((col,row))
         return dis_dict  
     
 # calculate the relation(similarity) among the object, for each attribute, a catch memory to speed up
@@ -113,8 +113,8 @@ class I_RS:## incremental tolerance fuzzy tough set
             for key in self.dis_dict:
                 if key == attr_id:
                     continue
-                for pair in self.dis_dict[key]: # pair is (id1,id2) tuple, use tuple as it could be hashed
-                    dis_exclude_a.add(pair)
+                else:
+                    dis_exclude_a = dis_exclude_a.union(self.dis_dict[key])
             if dis_exclude_a != self.dis_all:#dis(A - a) != dis(A)
                 core.append(attr_id) #a should be the in the core   
 #################################################################
@@ -126,9 +126,7 @@ class I_RS:## incremental tolerance fuzzy tough set
         self.dis_red = set()
 
         for attr_id in red: #calculate the dis(reduct)
-            value = self.dis_dict[attr_id]
-            for pair in value:
-                self.dis_red.add(pair)
+            self.dis_red = self.dis_red.union(self.dis_dict[attr_id])           
         #for the discenibility set of each attribute, exclude those in the dis(reduct)  
         copy_dis_dict = self.dis_dict.copy()
         for attr_id in list(range(self.X.shape[1])):
@@ -155,7 +153,13 @@ class I_RS:## incremental tolerance fuzzy tough set
     def fit(self, X, Y):
         self.Y = Y
         self.X = X
+        self.rule_miner = LEM2()
         self.reduct_attr = self.find_reduct()
+        self.calculate_UX_UR()
+        self.calculate_upper_lower()        
+        fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_upper_records)
+        self.fix_rule = self.find_rule_coverage(fix_rule)
+        #self.possible_rule = self.sort_rule(possible_rule)
 
 # this method update the reduct when there is new object getting in
 # note the new object already added into the self.X, access it by self.X[-1]
@@ -252,7 +256,11 @@ class I_RS:## incremental tolerance fuzzy tough set
                 new_pairs.add((pair[0]-1,pair[1]-1))
         self.dis_red = new_pairs      
         self.update_reduct()
-    
+        self.calculate_UX_UR()
+        self.calculate_upper_lower()        
+        fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_upper_records)
+        self.fix_rule = self.sort_rule(fix_rule)
+        self.possible_rule = self.sort_rule(possible_rule)
     def remove_objects(self,by):
         drop_y = self.Y[:by]
         self.Y = self.Y[by:]
@@ -288,7 +296,11 @@ class I_RS:## incremental tolerance fuzzy tough set
                 new_pairs.add((pair[0]-by,pair[1]-by)) 
         self.dis_red = new_pairs
         self.update_reduct()
-        
+        self.calculate_UX_UR()
+        self.calculate_upper_lower()        
+        fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_upper_records)
+        self.fix_rule = self.sort_rule(fix_rule)
+        self.possible_rule = self.sort_rule(possible_rule)
 #this method will update decision table after there is new instance coming in 
 # step0 add the new instance to X and Y
 # step1 expand the relation tensor by one col and row
@@ -352,6 +364,11 @@ class I_RS:## incremental tolerance fuzzy tough set
 #                     d(id1) != d(id2) means they will be discerned by some attribute
 #                and add the pair like what we do before for the initial data   
         self.update_reduct()
+        self.calculate_UX_UR()
+        self.calculate_upper_lower()        
+        fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_upper_records)
+        self.fix_rule = self.sort_rule(fix_rule)
+        self.possible_rule = self.sort_rule(possible_rule)
                 
     def update_group(self,newX,newY):
         self.Y = np.append(self.Y,newY)
@@ -394,8 +411,113 @@ class I_RS:## incremental tolerance fuzzy tough set
                                 self.dis_red.add((id1,id2))
                                 self.dis_red.add((id2,id1)) 
         self.update_reduct()
+        self.calculate_UX_UR()
+        self.calculate_upper_lower()        
+        fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_upper_records)
+        self.fix_rule = self.sort_rule(fix_rule)
+        self.possible_rule = self.sort_rule(possible_rule)
+################################################################################################################################
+#calculate upper and lower
+    def calculate_UX_UR(self):
+        values_decision = np.unique(self.Y)
+        self.U_X = {}
+        for value in values_decision:
+            self.U_X[value] = np.where(self.Y == value)[0]
+        self.U_R = {}
+        for id1 in range(self.X.shape[0]):
+            values_conditions = ''
+            index_col_name_reduct = 0
+            for attr_id in self.reduct_attr:
+                values_conditions = values_conditions + str(self.X[id1,attr_id])
 
-   
+                if index_col_name_reduct != len(self.reduct_attr) - 1:
+                    values_conditions = values_conditions + ", "
+
+            index_col_name_reduct = index_col_name_reduct + 1
+            if not values_conditions in self.U_R:
+               self. U_R[values_conditions] = []
+
+            self.U_R[values_conditions].append(id1)   
+            
+    def calculate_upper_lower(self):
+        self.all_upper_approximate = {}
+        self.all_upper_records = {}
+    
+        self.all_lower_approximate = {}
+        self.all_lower_records = {}
+    
+        allaR = []
+        allBnd = []
+    
+        for decision in self.U_X:
+            lowerap = []
+            upperap = []
+    
+            lowerap_records = set()
+            upperap_records = set()
+    
+            U_Xcon = set(self.U_X[decision])
+            for result in self.U_R:
+                U_Rcon = set(self.U_R[result])
+                # if decision is a subset of result
+                if (U_Rcon.issubset(U_Xcon)):
+                    lowerap.append(result)
+                    lowerap_records = lowerap_records.union(U_Rcon)
+                # if decision contains element of result
+                if (U_Rcon.isdisjoint(U_Xcon) == False):
+                    upperap.append(result)
+                    upperap_records = upperap_records.union(U_Rcon)
+    
+            self.all_lower_approximate[decision] = lowerap
+            self.all_lower_records[decision] = lowerap_records
+    
+            self.all_upper_approximate[decision] = upperap
+            self.all_upper_records[decision] = upperap_records
+    
+            # allaR.add(len(lowerap)/len(upperap)) #粗糙度
+        # allBnd.append(lowerap - upperap)#bond    
+    
+    def find_rule_coverage(self,all_rule):
+        rule_coverage = []
+        for decision in all_rule:
+            rules = all_rule[decision]
+            for rule in rules:
+                cover = set()
+                for i in range(self.X.shape[0]):
+                    cover.add(i)
+                for condition in rule:
+                    cover = cover.intersection(set(np.where(self.X[:,condition[0]] == condition[1])[0]))
+                match_decision_count = 0
+                for id1 in cover:
+                    if self.Y[id1] == decision:
+                        match_decision_count = match_decision_count+1
+                rule_coverage.append((rule,decision,len(cover),len(cover)/match_decision_count))
+        return rule_coverage
+    
+    def predict(self,newX):
+       match_rule = []
+       for rule in self.fix_rule:
+           condition = rule[0]
+           match = True
+           for pair in condition:
+               if newX[pair[0]] != pair[1]:
+                   match = False
+                   break
+           if match:
+               match_rule.append(rule)
+       if len(match_rule) == 1:
+           return match_rule[0][1],match_rule[0][2]
+       elif len(match_rule) > 1:
+           max_cover = 0
+           final_decision = None
+           for rule in match_rule:
+               if rule[2] > max_cover:
+                   max_cover = rule[2]
+                   final_decision = rule[1]
+           return final_decision,max_cover
+       elif len(match_rule) == 0:
+           print('no match')
+           return self.Y[0],0
 class VIRS:## vote fuzzy rough set
     def __init__(self,batch_size):
         self.batch_size = batch_size
@@ -441,9 +563,37 @@ class VIRS:## vote fuzzy rough set
         for i in range(self.child_num):
             reduct_list.append(self.child_list[i].reduct_attr)
         return reduct_list
+    
     ##voting style
     def predict(self,newX):
-        pass
+        predictions = {}
+        for i in range(self.child_num):
+            prediction,mf = self.child_list[i].predict(newX)
+            if prediction in predictions:
+                predictions[prediction][0] = predictions[prediction][0] + 1
+                predictions[prediction][1] = predictions[prediction][1] + mf
+            else:
+                predictions[prediction] = [1,mf]
+        max_key = []
+        max_support = 0
+        for key in predictions:
+            if predictions[key][0] > max_support:
+                max_key = [key]
+                max_support = predictions[key][0]
+            elif predictions[key][0] == max_support:
+                max_key.append(key)
+            else:
+                pass
+        if len(max_key) == 1:
+            return max_key[0]
+        else:
+            max_mf = 0
+            prediction = None
+            for i in range(len(max_key)):
+                if predictions[max_key[i]][1] > max_mf:
+                    max_mf = predictions[max_key[i]][1]
+                    prediction = max_key[i]
+            return prediction  
 class ISwRS:## vote fuzzy rough set
     def __init__(self,batch_size,window_size):
         self.batch_size = batch_size
@@ -502,7 +652,34 @@ class ISwRS:## vote fuzzy rough set
         return reduct_list
     ##voting style
     def predict(self,newX):
-        pass
+        predictions = {}
+        for i in range(self.child_num):
+            prediction,mf = self.child_list[i].predict(newX)
+            if prediction in predictions:
+                predictions[prediction][0] = predictions[prediction][0] + 1
+                predictions[prediction][1] = predictions[prediction][1] + mf
+            else:
+                predictions[prediction] = [1,mf]
+        max_key = []
+        max_support = 0
+        for key in predictions:
+            if predictions[key][0] > max_support:
+                max_key = [key]
+                max_support = predictions[key][0]
+            elif predictions[key][0] == max_support:
+                max_key.append(key)
+            else:
+                pass
+        if len(max_key) == 1:
+            return max_key[0]
+        else:
+            max_mf = 0
+            prediction = None
+            for i in range(len(max_key)):
+                if predictions[max_key[i]][1] > max_mf:
+                    max_mf = predictions[max_key[i]][1]
+                    prediction = max_key[i]
+            return prediction  
 class TFVRS:## time fading vote fuzzy rough set
     def __init__(self,batch_size, fading_factor):
         self.batch_size = batch_size
@@ -515,7 +692,7 @@ class TFVRS:## time fading vote fuzzy rough set
         self.child_list = []
         for i in range(self.child_num):
             tfrs = I_RS()
-            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],self.X_var)
+            tfrs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])])
             self.child_list.append(tfrs)
     def update(self,newX,newY):
         if self.child_list[self.child_num-1].size() < self.batch_size:
@@ -550,4 +727,270 @@ class TFVRS:## time fading vote fuzzy rough set
             reduct_list.append(self.child_list[i].reduct_attr)
         return reduct_list
     def predict(self,newX):
-       pass
+       predictions = {}
+       for i in range(self.child_num):
+            prediction,mf = self.child_list[i].predict(newX)
+            if prediction in predictions:
+                predictions[prediction][0] = predictions[prediction][0] + self.fading_factor**(self.child_num-(i+1))
+                predictions[prediction][1] = predictions[prediction][1] + mf * self.fading_factor**(self.child_num-(i+1))
+            else:
+                predictions[prediction] = [1,mf] 
+       max_key = []
+       max_support = 0
+       for key in predictions:
+           if predictions[key][0] > max_support:
+               max_key = [key]
+               max_support = predictions[key][0]
+           elif predictions[key][0] == max_support:
+               max_key.append(key)
+           else:
+               pass
+       if len(max_key) == 1:
+           return max_key[0]
+       else:
+           max_mf = 0
+           prediction = None
+           for i in range(len(max_key)):
+               if predictions[max_key[i]][1] > max_mf:
+                   max_mf = predictions[max_key[i]][1]
+                   prediction = max_key[i]
+           return prediction    # -*- coding: utf-8 -*-
+   
+class LEM2:
+    def induce_rule(self,X,Y,reduct,lower_record,upper_record):
+        self.all_t = self.get_all_t(X,Y,reduct)
+        self.populate_all_t(X,Y,reduct)
+        possible_rule = self.lem2(upper_record)
+        fix_rule = self.lem2(lower_record)
+        return fix_rule,possible_rule
+        
+    def get_all_t(self,X,Y,reduct):
+        all_t = {}
+        for attr_id in reduct:
+            all_t[attr_id] = {}
+            unique_values = np.unique(X[:,attr_id])
+            for value in unique_values:
+                all_t[attr_id][value] = set()
+        return all_t
+
+    def populate_all_t(self,X,Y,reduct):
+        for id1 in range(X.shape[0]):
+            for attr_id in reduct:
+                self.all_t[attr_id][X[id1,attr_id]].add(id1)
+
+    def calculate_all_relevant_T_G(self,G):
+        all_relevant_T_G = set()    
+        for condition in self.all_t:
+            for value in self.all_t[condition]:
+                intersection = self.all_t[condition][value].intersection(G)
+                if len(intersection) != 0:
+                    t = [condition, value]
+                    all_relevant_T_G.add(tuple(t))
+    
+        return all_relevant_T_G
+
+
+    def get_all_item_in_T(self,T):
+        all_set_t = []
+        for t in T:
+            all_set_t.append(self.all_t[t[0]][t[1]])
+    
+        all_items_in_T = set()
+    
+        if len(all_set_t) != 0:
+            all_items_in_T = all_set_t[0]
+            for t in all_set_t:
+                all_items_in_T = all_items_in_T.intersection(t)
+    
+        return all_items_in_T
+
+
+    def get_all_item_in_hollow_T(self,hollow_T):
+        all_items_in_hollow_T = set()
+    
+        for T in hollow_T:
+            all_items_in_hollow_T = all_items_in_hollow_T.union(self.get_all_item_in_T(T))
+    
+        return all_items_in_hollow_T
+
+
+    def delete_t_from_T(self,T, t):
+        for pair in T:
+            if pair[0] == t[0] and pair[1] == t[1]:
+                T.remove(t)
+                break
+
+
+    def equal_two_T(self,T_1, T_2):
+        list_T_1 = list(T_1)
+        list_T_1.sort()
+        list_T_2 = list(T_2)
+        list_T_2.sort()    
+        return np.array_equal(list_T_1,list_T_2)
+
+
+    def delete_T_from_hollow_T(self,hollow_T, T_to_delete):
+        copy_hollow_T = copy.deepcopy(hollow_T)
+        the_T_to_delete = None
+    
+        for T in copy_hollow_T:
+            if self.equal_two_T(T, T_to_delete):
+                the_T_to_delete = T
+                break
+    
+        copy_hollow_T.remove(the_T_to_delete)
+        return copy_hollow_T
+
+    def select_a_t(self,all_relevant_T_G, G):
+        list_all_relevant_T_G = list(all_relevant_T_G)
+        list_cardinality = []
+    
+        index = 0
+        while index < len(list_all_relevant_T_G):
+            t = list_all_relevant_T_G[index]
+            set_t = self.all_t[t[0]][t[1]]
+            t_intersect_G = set_t.intersection(G)
+            cardinality = len(t_intersect_G)
+            list_cardinality.append(cardinality)
+            index = index + 1
+    
+        max_cardinality = max(list_cardinality)
+        indices_max_cardinality = []
+        index = 0
+        while index < len(list_cardinality):
+            if list_cardinality[index] == max_cardinality:
+                indices_max_cardinality.append(index)
+            index = index + 1
+    
+        if len(indices_max_cardinality) == 1:
+            return list_all_relevant_T_G[indices_max_cardinality[0]]
+        else:
+            ts_with_same_cardinality = []
+            for index in indices_max_cardinality:
+                ts_with_same_cardinality.append(list_all_relevant_T_G[index])
+    
+            cardinalities_t = []
+            for t in ts_with_same_cardinality:
+                cardinality_t = len(self.all_t[t[0]][t[1]])
+                cardinalities_t.append(cardinality_t)
+    
+            min_cardinality = min(cardinalities_t)
+            indices_min_cardinality = []
+            index = 0
+            while index < len(cardinalities_t):
+                if cardinalities_t[index] == min_cardinality:
+                    indices_min_cardinality.append(index)
+                index = index + 1
+    
+            if len(indices_min_cardinality) == 1:
+                return ts_with_same_cardinality[indices_min_cardinality[0]]
+            else:
+                return list_all_relevant_T_G[0]
+
+    def lem2(self,lower_or_upper_set):
+        conclusion = {}
+        for decision in lower_or_upper_set:
+            conclusion[decision] = []
+            B = lower_or_upper_set[decision]
+            G = copy.deepcopy(B)
+            Covering_hollow_T = set()
+    
+            count = 0
+            while (len(G) != 0):
+                condition_T = set()
+                all_relevant_T_G = self.calculate_all_relevant_T_G(G)  # set contains t
+                # print("all_relevant_T_G: ", all_relevant_T_G)
+    
+                T_belongs_to_B = self.get_all_item_in_T(condition_T).issubset(B)
+    
+                while len(all_relevant_T_G) != 0 and (len(condition_T) == 0 or (not T_belongs_to_B)):  # while T = Ø or [T] Õ/ B
+                    t = self.select_a_t(all_relevant_T_G, G)
+                    all_relevant_T_G.remove(t)
+                    # print("condition_T 1: ", condition_T)
+                    # print("t 1: ", t)
+                    temp = set()
+                    temp.add(tuple(t))
+                    condition_T = condition_T.union(temp)
+                    G = G.intersection(self.all_t[t[0]][t[1]])  # G := [t] « G;
+                    all_relevant_T_G = self.calculate_all_relevant_T_G(G)
+                    all_relevant_T_G = all_relevant_T_G.difference(condition_T)  # T(G) := T(G) – T;
+                    T_belongs_to_B = self.get_all_item_in_T(condition_T).issubset(B)
+                # end inner while
+    
+                # if len(condition_T) == 1:
+                #     print("condition_T: ", condition_T, " count: ", count)
+                #     break
+                # for each t in T do
+                set_t_to_delete_from_condition_T = []
+                for t in condition_T:
+                    # print("condition_T 1: ", condition_T)
+                    copy_T = copy.deepcopy(condition_T)
+                    # print("copy 1: ", copy_T)
+                    # print("t 1: ", t)
+                    self.delete_t_from_T(copy_T, t)
+                    # print("copy 2: ", copy_T)
+    
+                    if copy_T != None and len(copy_T) != 0:
+                        all_items_in_remove_t = self.get_all_item_in_T(copy_T)
+                        # print("copy_T: ", copy_T)
+                        # print("all_items_in_remove_t: ", all_items_in_remove_t)
+                        # print("B: ", B)
+                        if all_items_in_remove_t.issubset(B):
+                            # print("true")
+                            set_t_to_delete_from_condition_T.append(t)
+    
+                if len(set_t_to_delete_from_condition_T) != 0:
+                    # print("set_t_to_delete_from_condition_T: ", set_t_to_delete_from_condition_T)
+                    list_condition_T = list(condition_T)
+                    # print("list_condition_T: before", list_condition_T)
+                    for t in set_t_to_delete_from_condition_T:
+                        index = 0
+                        while index < len(list_condition_T):
+                            if list_condition_T[index][0] == t[0] and list_condition_T[index][1] == t[1]:
+                                list_condition_T.pop(index)
+                            else:
+                                index = index + 1
+                    condition_T = set(list_condition_T)
+                    # print("condition_T: after", condition_T)
+                # end: for each t in T do
+    
+                # print("Covering_hollow_T, before union: ", Covering_hollow_T)
+                # print("condition_T: ", condition_T)
+                temp = set()
+                temp.add(tuple(condition_T))
+                Covering_hollow_T = Covering_hollow_T.union(temp)
+                # print("Covering_hollow_T, after union: ", Covering_hollow_T)
+    
+                # print("B1: ", B)
+                # print("get_all_item_in_hollow_T(Covering_hollow_T): ", get_all_item_in_hollow_T(Covering_hollow_T))
+                G = B.difference(self.get_all_item_in_hollow_T(Covering_hollow_T))
+                # print("G1: after", G)
+                count = count + 1
+            # outer while
+            T_to_delete = []
+            for T in Covering_hollow_T:
+                # print("Covering_hollow_T: ", Covering_hollow_T)
+                # print("T: ", T)
+                hollowT_minus_T = self.delete_T_from_hollow_T(Covering_hollow_T, T)
+                # print("hollowT_minus_T: ", hollowT_minus_T)
+    
+                all_item_in_hollowT_minus_T = self.get_all_item_in_hollow_T(hollowT_minus_T)
+                list_all_item_in_hollowT_minus_T = list(all_item_in_hollowT_minus_T)
+                list_all_item_in_hollowT_minus_T.sort()
+                list_B = list(B)
+                list_B.sort()
+    
+                # print("list_all_item_in_hollowT_minus_T: ", list_all_item_in_hollowT_minus_T)
+                # print("list_B: ", list_B)
+                if list_all_item_in_hollowT_minus_T == list_B:
+                    # print("Covering_hollow_T 1: ", Covering_hollow_T)
+                    T_to_delete.append(T)
+                    # print("Covering_hollow_T 2: ", Covering_hollow_T)
+    
+            # print("T_to_delete: ", T_to_delete)
+            # print("Covering_hollow_T: before", Covering_hollow_T)
+            for T in T_to_delete:
+                Covering_hollow_T.remove(T)
+    
+            conclusion[decision] = Covering_hollow_T
+        return conclusion

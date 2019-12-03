@@ -538,7 +538,7 @@ class I_FRS:## incremental tolerance fuzzy tough set
 # and the one with higher degree will get predicted                   
     def predict(self,newX):
         candidate = []
-        max_sim_rule = None
+        max_sim_rule = self.all_rule[0]
         max_sim = 0
         for rule in self.all_rule:
             id1 = rule[0]

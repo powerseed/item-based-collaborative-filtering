@@ -25,7 +25,7 @@ class I_FRS:## incremental tolerance fuzzy tough set
     # output relation: the similarity of these two object in this specific attrbute
     def t_relation_per_attr(self,id1,id2,attr_id):## return the fuzzy relation of x and y
         if attr_id in self.cat:
-            if self.X[id1] == self.X[id2]:
+            if self.X[id1,attr_id] == self.X[id2,attr_id]:
                 return 1
             else:
                 return 0
@@ -538,7 +538,7 @@ class I_FRS:## incremental tolerance fuzzy tough set
 # and the one with higher degree will get predicted                   
     def predict(self,newX):
         candidate = []
-        max_sim_rule = None
+        max_sim_rule = self.all_rule[0]
         max_sim = 0
         for rule in self.all_rule:
             id1 = rule[0]
@@ -547,11 +547,12 @@ class I_FRS:## incremental tolerance fuzzy tough set
                 if attr in self.cat:
                     if newX[attr] == self.X[id1,attr]:
                         sim = sim + 1
+                        continue
                 else:
                     relation = np.exp(-(newX[attr] - self.X[id1,attr])**2/(2*self.X_var[attr]))
                     if np.isnan(relation):##just in case variance is 0, then it make sense that they are the same 
                         relation = 1
-                sim  = sim + relation
+                    sim  = sim + relation
             sim = sim/len(self.reduct_attr)
             if 1 - sim < self.m_f[id1]:
                 candidate.append(rule)
@@ -845,7 +846,7 @@ class TFMRS:## time fading vote fuzzy rough set
             decision,cover = self.child_list[i].predict(newX)
             if decision in decision_dict:
                 decision_dict[decision][0] = decision_dict[decision][0] + self.fading_factor**(self.child_num-(i+1))
-                decision_dict[decision][1] = decision_dict[decision][1] + cover
+                decision_dict[decision][1] = decision_dict[decision][1] + cover*self.fading_factor**(self.child_num-(i+1))
             else:
                 decision_dict[decision] = [1,cover]
         candidate_decision = []

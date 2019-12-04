@@ -23,7 +23,6 @@ class I_RS:## incremental tolerance fuzzy tough set
                         if self.X[id1,attr_id] != self.X[id2,attr_id]:# left side euqal to 0 or 1 and right side equal to 0 or 1, since it is a crisp rough set 
                             dis_set.append(attr_id)## if so append
                     dis_mat[id1][id2] = dis_set## set it in the matrix
-                    dis_mat[id1][id2] = dis_set
         return dis_mat
 
 # this method use the discernibility matrix to find : for each attribute, the pair of object is disimilar(regard to first object's membership degree)    
@@ -101,12 +100,10 @@ class I_RS:## incremental tolerance fuzzy tough set
         self.X = X
         self.rule_miner = lem2.LEM2()
         self.reduct_attr = self.find_reduct()
-        self.calculate_UX_UR()
-        self.calculate_upper_lower()        
+        U_X,U_R = self.calculate_UX_UR()
+        self.calculate_positive_boundary(U_X,U_R)        
         fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_bound_records)
         self.fix_rule = self.find_rule_coverage(fix_rule)
-        self.possible_rule = self.find_rule_coverage(possible_rule)
-
 # this method update the reduct when there is new object getting in
 # note the new object already added into the self.X, access it by self.X[-1]
 # step 1 this method initialize the new reduct by the current reduct, then calculate the dis(new_reduct)
@@ -185,11 +182,10 @@ class I_RS:## incremental tolerance fuzzy tough set
                         if attr_id in self.reduct_attr:
                             self.dis_red.add((id1,self.X.shape[0]-1))
         self.update_reduct()
-        self.calculate_UX_UR()
-        self.calculate_upper_lower()        
+        U_X,U_R = self.calculate_UX_UR()
+        self.calculate_positive_boundary(U_X,U_R)        
         fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_bound_records)
         self.fix_rule = self.find_rule_coverage(fix_rule)
-        self.possible_rule = self.find_rule_coverage(possible_rule)
                 
     def update_group(self,newX,newY):
         self.Y = np.append(self.Y,newY)
@@ -201,11 +197,8 @@ class I_RS:## incremental tolerance fuzzy tough set
                         if self.X[id1,attr_id] != self.X[id2,attr_id]:
                             self.dis_dict[attr_id].add((id1,id2))
                             self.dis_all.add((id1,id2))
-                            self.dis_dict[attr_id].add((id2,id1))
-                            self.dis_all.add((id2,id1))
                             if attr_id in self.reduct_attr:
-                                self.dis_red.add((id1,id2))
-                                self.dis_red.add((id2,id1))                                
+                                self.dis_red.add((id1,id2))                               
         for attr_id in self.dis_dict:
             for id1 in range(self.X.shape[0] - newX.shape[0], self.X.shape[0]-1):
                 for id2 in range(id1, self.X.shape[0]):
@@ -213,25 +206,22 @@ class I_RS:## incremental tolerance fuzzy tough set
                         if self.X[id1,attr_id] != self.X[id2,attr_id]:
                             self.dis_dict[attr_id].add((id1,id2))
                             self.dis_all.add((id1,id2))
-                            self.dis_dict[attr_id].add((id2,id1))
-                            self.dis_all.add((id2,id1))
                             if attr_id in self.reduct_attr:
                                 self.dis_red.add((id1,id2))
-                                self.dis_red.add((id2,id1)) 
         self.update_reduct()
-        self.calculate_UX_UR()
-        self.calculate_upper_lower()        
+        U_X,U_R = self.calculate_UX_UR()
+        self.calculate_positive_boundary(U_X,U_R)        
         fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_bound_records)
         self.fix_rule = self.find_rule_coverage(fix_rule)
-        self.possible_rule = self.find_rule_coverage(possible_rule)
+        #self.possible_rule = self.find_rule_coverage(possible_rule)
 ################################################################################################################################
 #calculate upper and lower
     def calculate_UX_UR(self):
         values_decision = np.unique(self.Y)
-        self.U_X = {}
+        U_X = {}
         for value in values_decision:
-            self.U_X[value] = np.where(self.Y == value)[0]
-        self.U_R = {}
+            U_X[value] = np.where(self.Y == value)[0]
+        U_R = {}
         for id1 in range(self.X.shape[0]):
             values_conditions = ''
             index_col_name_reduct = 0
@@ -242,12 +232,12 @@ class I_RS:## incremental tolerance fuzzy tough set
                     values_conditions = values_conditions + ", "
 
             index_col_name_reduct = index_col_name_reduct + 1
-            if not values_conditions in self.U_R:
-               self. U_R[values_conditions] = []
+            if not values_conditions in U_R:
+               U_R[values_conditions] = []
 
-            self.U_R[values_conditions].append(id1)   
-            
-    def calculate_upper_lower(self):
+            U_R[values_conditions].append(id1)   
+        return U_X, U_R     
+    def calculate_positive_boundary(self,U_X,U_R):
         self.all_bound = {}
         self.all_bound_records = {}
     
@@ -257,16 +247,16 @@ class I_RS:## incremental tolerance fuzzy tough set
         allaR = []
         allBnd = []
     
-        for decision in self.U_X:
+        for decision in U_X:
             lowerap = []
             upperap = []
     
             lowerap_records = set()
             upperap_records = set()
     
-            U_Xcon = set(self.U_X[decision])
-            for condition in self.U_R:
-                U_Rcon = set(self.U_R[condition])
+            U_Xcon = set(U_X[decision])
+            for condition in U_R:
+                U_Rcon = set(U_R[condition])
                 # if decision is a subset of result
                 if (U_Rcon.issubset(U_Xcon)):
                     lowerap.append(condition)
@@ -277,10 +267,10 @@ class I_RS:## incremental tolerance fuzzy tough set
                     upperap.append(condition)
                     upperap_records = upperap_records.union(U_Rcon)
     
-            self.all_lower_approximate[decision] = lowerap
+            #self.all_lower_approximate[decision] = lowerap
             self.all_lower_records[decision] = lowerap_records
     
-            self.all_bound[decision] = upperap
+            #self.all_bound[decision] = upperap
             self.all_bound_records[decision] = upperap_records
     
             # allaR.add(len(lowerap)/len(upperap)) #粗糙度

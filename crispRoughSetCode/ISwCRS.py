@@ -95,8 +95,8 @@ class ISwCRS:
         return self.reduct_hist
     
      def combine_rule(self):
-         self.all_rule = {}
          if not self.rule_combined:
+             self.all_rule = {}
              for rules in self.rule_list:
                  for rule in rules:
                     if (rule[0],rule[1]) in self.all_rule:

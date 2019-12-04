@@ -1,7 +1,7 @@
 import numpy as np
-import copy
 class LEM2:
     def induce_rule(self,X,Y,reduct,lower_record,upper_record):
+        self.X_shape = X.shape[0]
         self.all_t = self.get_all_t(X,Y,reduct)
         self.populate_all_t(X,Y,reduct)
         possible_rule = self.lem2(upper_record)
@@ -50,8 +50,7 @@ class LEM2:
 
 
     def get_all_item_in_hollow_T(self,hollow_T):
-        all_items_in_hollow_T = set()
-    
+        all_items_in_hollow_T = set()    
         for T in hollow_T:
             all_items_in_hollow_T = all_items_in_hollow_T.union(self.get_all_item_in_T(T))
     
@@ -64,25 +63,9 @@ class LEM2:
                 T.remove(t)
                 break
 
-
-    def equal_two_T(self,T_1, T_2):
-        list_T_1 = list(T_1)
-        list_T_1.sort()
-        list_T_2 = list(T_2)
-        list_T_2.sort()    
-        return np.array_equal(list_T_1,list_T_2)
-
-
     def delete_T_from_hollow_T(self,hollow_T, T_to_delete):
-        copy_hollow_T = copy.deepcopy(hollow_T)
-        the_T_to_delete = None
-    
-        for T in copy_hollow_T:
-            if self.equal_two_T(T, T_to_delete):
-                the_T_to_delete = T
-                break
-    
-        copy_hollow_T.remove(the_T_to_delete)
+        copy_hollow_T = hollow_T.copy()     
+        copy_hollow_T.remove(T_to_delete)
         return copy_hollow_T
 
     def select_a_t(self,all_relevant_T_G, G):
@@ -136,7 +119,7 @@ class LEM2:
         for decision in lower_or_upper_set:
             conclusion[decision] = []
             B = lower_or_upper_set[decision]
-            G = copy.deepcopy(B)
+            G = B.copy()
             Covering_hollow_T = set()
     
             count = 0
@@ -169,7 +152,7 @@ class LEM2:
                 copy_ = condition_T.copy()
                 for t in copy_:
                     # print("condition_T 1: ", condition_T)
-                    copy_T = copy.deepcopy(condition_T)
+                    copy_T = condition_T.copy()
                     # print("copy 1: ", copy_T)
                     # print("t 1: ", t)
                     self.delete_t_from_T(copy_T, t)

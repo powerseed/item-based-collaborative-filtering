@@ -1,11 +1,11 @@
 import pandas as pd
-import numpy as np
-import ICRS as ic
-import IVRS as iv
-import ISwCRS as iswc
-import ISwRS as isr
-import TFCRS as tfc
-import TFVRS as tfv
+#import numpy as np
+#import ICRS as ic
+#import IVRS as iv
+#import ISwCRS as iswc
+#import ISwRS as isr
+#import TFCRS as tfc
+#import TFVRS as tfv
 import clustering
 import IRS1 as irs
 df = pd.read_csv('data/electricity_csv.csv')
@@ -41,7 +41,7 @@ while i < 5:
     for j in range(200):
         d = i1.predict(testX[j])
         d_l.append(d)
-        if d == testY[j]:
+        if d[0] == testY[j]:
             correct[0] = correct[0]+1
 #        d1 = a.predict(testX[j])
 #        if d1 == testY[j]:

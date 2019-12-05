@@ -103,6 +103,7 @@ class I_RS:## incremental tolerance fuzzy tough set
         self.calculate_positive_boundary(U_X,U_R)        
         fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_bound_records)
         self.fix_rule = self.find_rule_coverage(fix_rule)
+        self.possible_rule = self.find_rule_coverage(possible_rule)
 ################################################################################################################################
 #calculate upper and lower
     def calculate_UX_UR(self):
@@ -210,5 +211,34 @@ class I_RS:## incremental tolerance fuzzy tough set
            return final_decision,max_cover
         elif len(match_decision) == 0:
            #print('Unknow') 
-           return 'Unknown',0
+           return 'Unknow',0
+#    def predict_by_possible_rule(self,newX):
+#        match_decision = {}
+#        for rule in self.possible_rule:
+#           condition = rule[0]
+#           match = True
+#           for pair in condition:
+#               if newX[pair[0]] != pair[1]:
+#                   match = False
+#                   break
+#           if match:
+#               if rule[1] in match_decision:
+#                   match_decision[rule[1]][0] = match_decision[rule[1]][0]+rule[2]
+#                   match_decision[rule[1]][1] = match_decision[rule[1]][1]+rule[3]
+#               else:
+#                   match_decision[rule[1]] = [rule[2],rule[3]]
+#        if len(match_decision) == 1:
+#           for decision in match_decision:
+#               return decision,match_decision[decision][0]*match_decision[decision][1]
+#        elif len(match_decision) > 1:
+#           max_cover = 0
+#           final_decision = None
+#           for decision in match_decision:
+#               if match_decision[decision][0] > max_cover:
+#                   max_cover = match_decision[decision][0]*match_decision[decision][1]
+#                   final_decision = decision
+#           return final_decision,max_cover
+#        elif len(match_decision) == 0:
+#           #print('Unknow') 
+#           
        

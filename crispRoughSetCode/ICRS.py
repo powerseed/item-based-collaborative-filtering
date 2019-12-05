@@ -1,5 +1,5 @@
 import numpy as np
-import IRS1 as rs
+import RS as rs
 class ICRS:
      def __init__(self,batch_size):
         self.batch_size = batch_size

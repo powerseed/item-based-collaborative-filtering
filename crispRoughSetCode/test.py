@@ -15,8 +15,8 @@ decision = df['class'].values
 condition = df.drop(columns=['class']).values
 X = condition[:2000]
 Y = decision[:2000]
-testX = condition[2000:]
-testY = decision[2000:]
+testX = condition[2000:12000]
+testY = decision[2000:12000]
 
 a = ic.ICRS(200)
 b = iswc.ISwCRS(200,15)
@@ -34,7 +34,7 @@ correct = [0,0,0,0,0,0]
 d_l = []
 unknow = 0
 i = 1
-while i < 5:
+while testX.shape[0] >= 200:
     print(i)
     i = i + 1
     for j in range(200):

@@ -20,7 +20,6 @@ class ISwMRS:## vote fuzzy rough set
             for i in range(start_batch,child_num):
                 irs = mrs.MRS()
                 irs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],cat = self.cat)
-                self.reduct_hist.append(irs.reduct_attr)
                 self.child_list.append(irs)
         else:
             child_num = int(X.shape[0]/self.batch_size)
@@ -32,7 +31,6 @@ class ISwMRS:## vote fuzzy rough set
             for i in range(start_batch,child_num):
                 irs = mrs.MRS()
                 irs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],cat = self.cat)
-                self.reduct_hist.append(irs.reduct_attr)
                 self.child_list.append(irs)
             self.left_X = X[child_num*self.batch_size:X.shape[0],:].tolist()
             self.left_Y = Y[child_num*self.batch_size:Y.shape[0]].tolist()
@@ -43,14 +41,11 @@ class ISwMRS:## vote fuzzy rough set
         if len(self.rule_lists) == self.batch_size:
             irs = mrs.MRS()
             irs.fit(np.array(self.left_X),np.array(self.left_Y),cat = self.cat)
-            self.reduct_hist.append(irs.reduct_attr)
             self.child_list.append(irs)
-            self.rule_combined = False
             self.left_X = []
             self.left_Y = []
             if len(self.child_list) > self.window_size:
                 self.child_list.remove(self.child_list[0])
-                self.reduct_hist.remove(self.reduct_hist[0])
             
     def update_group(self, newX, newY):
         num_to_fill_batch = self.batch_size-len(self.left_Y)
@@ -63,14 +58,12 @@ class ISwMRS:## vote fuzzy rough set
             irs = mrs.MRS()
             #print((len(self.left_X),len(self.left_Y)))
             irs.fit(np.array(self.left_X),np.array(self.left_Y),cat = self.cat)
-            self.reduct_hist.append(irs.reduct_attr)
             self.child_list.append(irs)
             self.left_X = []
             self.left_Y = []
             self.rule_combined = False
             if len(self.child_list) > self.window_size:
                 self.child_list.remove(self.child_list[0])
-                self.reduct_hist.remove(self.reduct_hist[0])
         else:
             to_fill_X = newX[:num_to_fill_batch]
             to_fill_Y = newY[:num_to_fill_batch]
@@ -79,19 +72,15 @@ class ISwMRS:## vote fuzzy rough set
             irs = mrs.MRS()
             #print((len(self.left_X),len(self.left_Y)))
             irs.fit(np.array(self.left_X),np.array(self.left_Y),cat = self.cat)
-            self.reduct_hist.append(irs.reduct_attr)
             self.child_list.append(irs)
             self.left_X = []
             self.left_Y = []
             self.rule_combined = False
             if len(self.child_list) > self.window_size:
                 self.child_list.remove(self.child_list[0])
-                self.reduct_hist.remove(self.reduct_hist[0])
             newX = newX[num_to_fill_batch:]
             newY = newY[num_to_fill_batch:]
             self.update_group(newX,newY)
-    def return_reduct(self):
-        return self.reduct_hist
     def predict(self,newX):
         decision_dict = {}
         for child in self.child_list:

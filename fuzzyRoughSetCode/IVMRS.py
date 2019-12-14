@@ -15,14 +15,12 @@ class IVMRS:## vote fuzzy rough set
             for i in range(child_num):
                 irs = mrs.MRS()
                 irs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],cat = self.cat)
-                self.reduct_hist.append(irs.reduct_attr)
                 self.child_list.append(irs)
         else:
             child_num = int(X.shape[0]/self.batch_size)
             for i in range(child_num):
                 irs = mrs.MRS()
                 irs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])],cat = self.cat)
-                self.reduct_hist.append(irs.reduct_attr)
                 self.child_list.append(irs)
             self.left_X = X[child_num*self.batch_size:X.shape[0],:].tolist()
             self.left_Y = Y[child_num*self.batch_size:Y.shape[0]].tolist()
@@ -33,7 +31,6 @@ class IVMRS:## vote fuzzy rough set
         if len(self.all_rules) == self.batch_size:
             irs = mrs.MRS()
             irs.fit(np.array(self.left_X),np.array(self.left_Y),cat = self.cat)
-            self.reduct_hist.append(irs.reduct_attr)
             self.child_list.append(irs)
             self.left_X = []
             self.left_Y = []
@@ -49,7 +46,6 @@ class IVMRS:## vote fuzzy rough set
             irs = mrs.MRS()
             #print((len(self.left_X),len(self.left_Y)))
             irs.fit(np.array(self.left_X),np.array(self.left_Y),cat = self.cat)
-            self.reduct_hist.append(irs.reduct_attr)
             self.child_list.append(irs)
             self.left_X = []
             self.left_Y = []
@@ -61,18 +57,12 @@ class IVMRS:## vote fuzzy rough set
             irs = mrs.MRS()
             #print((len(self.left_X),len(self.left_Y)))
             irs.fit(np.array(self.left_X),np.array(self.left_Y),cat = self.cat)
-            self.reduct_hist.append(irs.reduct_attr)
             self.child_list.append(irs)
             self.left_X = []
             self.left_Y = []
             newX = newX[num_to_fill_batch:]
             newY = newY[num_to_fill_batch:]
             self.update_group(newX,newY)
-    def return_reduct(self):
-        reduct_list = []
-        for i in range(len(self.child_list)):
-            reduct_list.append(self.child_list[i].reduct_attr)
-        return reduct_list
     def predict(self,newX):
         decision_dict = {}
         for child in self.child_list:

@@ -177,9 +177,7 @@ class I_RS:## incremental tolerance fuzzy tough set
                 if self.Y[id1] != self.Y[-1]:
                     if self.X[-1,attr_id] != self.X[id1,attr_id]:
                         self.dis_dict[attr_id].add((id1,self.X.shape[0]-1))
-                        self.dis_dict[attr_id].add((self.X.shape[0]-1,id1))
                         self.dis_all.add((id1,self.X.shape[0]-1))
-                        self.dis_all.add((self.X.shape[0]-1,id1))
                         if attr_id in self.reduct_attr:
                             self.dis_red.add((id1,self.X.shape[0]-1))
         self.update_reduct()
@@ -187,6 +185,7 @@ class I_RS:## incremental tolerance fuzzy tough set
         self.calculate_positive_boundary(U_X,U_R)        
         fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_bound_records)
         self.fix_rule = self.find_rule_coverage(fix_rule)
+        self.possible_rule = self.find_rule_coverage(possible_rule)
                 
     def update_group(self,newX,newY):
         self.Y = np.append(self.Y,newY)

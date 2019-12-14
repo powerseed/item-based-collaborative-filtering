@@ -7,22 +7,23 @@ import ISwVRS as isr
 import TFCRS as tfc
 import TFVRS as tfv
 import clustering
-import IRS as irs
-df = pd.read_csv('data/movingRBF.csv')[:20000].fillna(0)
-#df = df.drop(columns=['date'])
-df = clustering.cluster_table(df,'target',10)
-decision = df['target'].values
-condition = df.drop(columns=['target']).values
+df = pd.read_csv('data/concept_data/circle.csv')
+df = clustering.cluster_table(df,'class',15)
+condition = df.drop(columns = ['class']).values
+decision = df['class'].values
 X = condition[:2000]
 Y = decision[:2000]
-testX = condition[2000:12000]
-testY = decision[2000:12000]
-a = ic.ICRS(200)
-b = iswc.ISwCRS(200,15)
-c = tfc.TFCRS(200,0.95)
-d = iv.IVRS(200)
-e = isr.ISwVRS(200,15)
-f = tfv.TFVRS(200,0.95)
+testX = condition[2000:]
+testY = decision[2000:]
+
+testX = condition[2000:]
+testY = decision[2000:]
+a = iswc.ISwCRS(50,20)
+b = tfc.TFCRS(50,0.95)
+c = iv.IVRS(50)
+d = isr.ISwVRS(50,20)
+e = tfv.TFVRS(50,0.95)
+f = ic.ICRS(50)
 a.fit(X,Y)
 b.fit(X,Y)
 c.fit(X,Y)
@@ -30,41 +31,39 @@ d.fit(X,Y)
 e.fit(X,Y)
 f.fit(X,Y)
 correct = [0,0,0,0,0,0]
-d_l = []
-unknow = 0
 i = 1
-while testX.shape[0] >= 200:
+while testX.shape[0] >= 20:
     print(i)
     i = i + 1
-    for j in range(200):
-#        d = i1.predict(testX[j])
-#        d_l.append(d)
-#        if d[0] == testY[j]:
-#            correct[0] = correct[0]+1
+    for j in range(20):
         d1 = a.predict(testX[j])
         if d1 == testY[j]:
-            correct[0] = correct[0]+1
-        d2 = b.predict(testX[j])
-        if d2 == testY[j]:
-            correct[1] = correct[1]+1
-        d3 = c.predict(testX[j])
-        if d3 == testY[j]:
-            correct[2] = correct[2]+1
-        d4 = d.predict(testX[j])
-        if d4 == testY[j]:
-            correct[3] = correct[3]+1
-        d5 = e.predict(testX[j])
-        if d5 == testY[j]:
-            correct[4] = correct[4]+1
-        d6 = f.predict(testX[j])
-        if d6 == testY[j]:
-            correct[5] = correct[5]+1
-#    i1.update_group(testX[:200],testY[:200])
-    a.update_group(testX[:200],testY[:200])
-    b.update_group(testX[:200],testY[:200])
-    c.update_group(testX[:200],testY[:200])
-    d.update_group(testX[:200],testY[:200])
-    e.update_group(testX[:200],testY[:200])
-    f.update_group(testX[:200],testY[:200])
-    testX = testX[200:]
-    testY = testY[200:]
+            correct[0] = correct[0] + 1
+        d1 = b.predict(testX[j])
+        if d1 == testY[j]:
+            correct[1] = correct[1] + 1
+        d1 = c.predict(testX[j])
+        if d1 == testY[j]:
+            correct[2] = correct[2] + 1
+        d1 = d.predict(testX[j])
+        if d1 == testY[j]:
+            correct[3] = correct[3] + 1
+        d1 = e.predict(testX[j])
+        if d1 == testY[j]:
+            correct[4] = correct[4] + 1
+        d1 = f.predict(testX[j])
+        if d1 == testY[j]:
+            correct[5] = correct[5] + 1
+    a.update_group(testX[:20],testY[:20])
+    b.update_group(testX[:20],testY[:20])
+    c.update_group(testX[:20],testY[:20])
+    d.update_group(testX[:20],testY[:20])
+    e.update_group(testX[:20],testY[:20])
+    f.update_group(testX[:20],testY[:20])
+    testX = testX[20:]
+    testY = testY[20:]  
+    
+    
+    
+    
+    

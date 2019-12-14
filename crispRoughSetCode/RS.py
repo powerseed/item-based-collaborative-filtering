@@ -99,6 +99,8 @@ class I_RS:## incremental tolerance fuzzy tough set
         self.X = X
         self.rule_miner = lem2.LEM2()
         self.reduct_attr = self.find_reduct()
+        if len(self.reduct_attr) == 0:
+            self.reduct_attr = list(range(self.X.shape[1]))
         U_X,U_R = self.calculate_UX_UR()
         self.calculate_positive_boundary(U_X,U_R)        
         fix_rule,possible_rule = self.rule_miner.induce_rule(self.X,self.Y,self.reduct_attr,self.all_lower_records,self.all_bound_records)
@@ -210,35 +212,35 @@ class I_RS:## incremental tolerance fuzzy tough set
                    final_decision = decision
            return final_decision,max_cover
         elif len(match_decision) == 0:
+           return self.predict_by_possible_rule(newX)
+    def predict_by_possible_rule(self,newX):
+        match_decision = {}
+        for rule in self.possible_rule:
+           condition = rule[0]
+           match = True
+           for pair in condition:
+               if newX[pair[0]] != pair[1]:
+                   match = False
+                   break
+           if match:
+               if rule[1] in match_decision:
+                   match_decision[rule[1]][0] = match_decision[rule[1]][0]+rule[2]
+                   match_decision[rule[1]][1] = match_decision[rule[1]][1]+rule[3]
+               else:
+                   match_decision[rule[1]] = [rule[2],rule[3]]
+        if len(match_decision) == 1:
+           for decision in match_decision:
+               return decision,match_decision[decision][0]*match_decision[decision][1]
+        elif len(match_decision) > 1:
+           max_cover = 0
+           final_decision = None
+           for decision in match_decision:
+               if match_decision[decision][0] > max_cover:
+                   max_cover = match_decision[decision][0]*match_decision[decision][1]
+                   final_decision = decision
+           return final_decision,max_cover
+        elif len(match_decision) == 0:
            #print('Unknow') 
-           return 'Unknow',0
-#    def predict_by_possible_rule(self,newX):
-#        match_decision = {}
-#        for rule in self.possible_rule:
-#           condition = rule[0]
-#           match = True
-#           for pair in condition:
-#               if newX[pair[0]] != pair[1]:
-#                   match = False
-#                   break
-#           if match:
-#               if rule[1] in match_decision:
-#                   match_decision[rule[1]][0] = match_decision[rule[1]][0]+rule[2]
-#                   match_decision[rule[1]][1] = match_decision[rule[1]][1]+rule[3]
-#               else:
-#                   match_decision[rule[1]] = [rule[2],rule[3]]
-#        if len(match_decision) == 1:
-#           for decision in match_decision:
-#               return decision,match_decision[decision][0]*match_decision[decision][1]
-#        elif len(match_decision) > 1:
-#           max_cover = 0
-#           final_decision = None
-#           for decision in match_decision:
-#               if match_decision[decision][0] > max_cover:
-#                   max_cover = match_decision[decision][0]*match_decision[decision][1]
-#                   final_decision = decision
-#           return final_decision,max_cover
-#        elif len(match_decision) == 0:
-#           #print('Unknow') 
+           return 'Unknown',0
 #           
        

@@ -12,7 +12,7 @@ class IVRS:
         
         child_num = int(X.shape[0]/self.batch_size)
         for i in range(child_num):
-            irs = rs.I_RS()
+            irs = rs.RS()
             irs.fit(X[i*self.batch_size:min((i+1)*self.batch_size,X.shape[0]),:],Y[i*self.batch_size:min((i+1)*self.batch_size,Y.shape[0])])
             self.reduct_hist.append(irs.reduct_attr)
             self.child_list.append(irs)
@@ -24,7 +24,7 @@ class IVRS:
         self.left_X.append(newX)
         self.left_Y.append(newY)
         if len(self.all_rules) == self.batch_size:
-            irs = rs.I_RS()
+            irs = rs.RS()
             irs.fit(np.array(self.left_X),np.array(self.left_Y))
             self.reduct_hist.append(irs.reduct_attr)
             self.child_list.append(irs)
@@ -39,7 +39,7 @@ class IVRS:
         elif newX.shape[0] == num_to_fill_batch:# exactly equal? make a new rough set system
             self.left_X.extend(newX.tolist())
             self.left_Y.extend(newY.tolist())
-            irs = rs.I_RS()
+            irs = rs.RS()
             #print((len(self.left_X),len(self.left_Y)))
             irs.fit(np.array(self.left_X),np.array(self.left_Y))
             self.reduct_hist.append(irs.reduct_attr)
@@ -51,7 +51,7 @@ class IVRS:
             to_fill_Y = newY[:num_to_fill_batch]
             self.left_X.extend(to_fill_X.tolist())
             self.left_Y.extend(to_fill_Y.tolist())
-            irs = rs.I_RS()
+            irs = rs.RS()
             #print((len(self.left_X),len(self.left_Y)))
             irs.fit(np.array(self.left_X),np.array(self.left_Y))
             self.reduct_hist.append(irs.reduct_attr)

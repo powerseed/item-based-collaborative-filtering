@@ -8,10 +8,18 @@ import SwVRS as isr
 import TFCRS as tfc
 import TFVRS as tfv
 import clustering
-df = pd.read_csv('data/stream_data/covtype.csv')[:50000]
-df[df.columns[:10]] = clustering.cluster_table(df[df.columns[:10]],'target',10)
-condition = df.drop(columns = ['target']).values
-decision = df['target'].values
+n_cluster = 10
+################################covtype###########################################
+#df = pd.read_csv('data/stream_data/covtype.csv')[:50000]
+#df[df.columns[:10]] = clustering.cluster_table(df[df.columns[:10]],'target',n_cluster)
+#condition = df.drop(columns = ['target']).values
+#decision = df['target'].values
+###################################################################################
+df = pd.read_csv('data/stream_data/hyperplane20.csv')[:10000]
+df = clustering.cluster_table(df,'response',n_cluster)
+condition = df.drop(columns = ['response']).values
+decision = df['response'].values
+####################################################################################
 X = condition[:2000]
 Y = decision[:2000]
 testX = condition[2000:]

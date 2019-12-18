@@ -252,13 +252,13 @@ class FRS:## incremental tolerance fuzzy tough set
         for decision in np.unique(self.Y):#for each decision
             index_d = np.where(self.Y == decision)[0]  # the index in X that with such decision
             U_X = self.X[index_d]# get those object with current decision
-            center = U_X # initialize the center by all the object with current decision
+            centers = U_X # initialize the center by all the object with current decision
             if len(self.cat) == 0: # if there is no catergorical attribute, use k means to find the center as rule, otherwise, use all objects as rule
                 if U_X.shape[0] > self.max_rule_per_decision: #
                         kmodel = KMeans(n_clusters = max(int(U_X.shape[0]*self.rule_proportion),self.max_rule_per_decision), n_jobs = 8)
                         kmodel.fit(U_X)
-                        center = kmodel.cluster_centers_
-            self.all_rule[decision] = center# mark those center as rule
+                        centers = kmodel.cluster_centers_
+            self.all_rule[decision] = centers# mark those center as rule
          
    
 

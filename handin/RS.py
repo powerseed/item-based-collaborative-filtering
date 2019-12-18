@@ -1,6 +1,6 @@
 import numpy as np
 import LEM2 as lem2
-class I_RS:## incremental tolerance fuzzy tough set
+class RS:## incremental tolerance fuzzy tough set
     def __init__(self):## the use of this tolerance still not decide yet
         pass
     
@@ -128,16 +128,14 @@ class I_RS:## incremental tolerance fuzzy tough set
                U_R[values_conditions] = []
 
             U_R[values_conditions].append(id1)   
-        return U_X, U_R     
+        return U_X, U_R    
+    
     def calculate_positive_boundary(self,U_X,U_R):
         self.all_bound = {}
         self.all_bound_records = {}
     
         self.all_lower_approximate = {}
         self.all_lower_records = {}
-    
-        allaR = []
-        allBnd = []
     
         for decision in U_X:
             lowerap = []
@@ -165,7 +163,7 @@ class I_RS:## incremental tolerance fuzzy tough set
             #self.all_bound[decision] = upperap
             self.all_bound_records[decision] = upperap_records
     
-            # allaR.add(len(lowerap)/len(upperap)) #粗糙度
+            # allaR.add(len(lowerap)/len(upperap)) 
         # allBnd.append(lowerap - upperap)#bond    
     
     def find_rule_coverage(self,all_rule):

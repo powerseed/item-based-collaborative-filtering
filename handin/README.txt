@@ -40,7 +40,7 @@ clustering.py: this is an implementation of using K-means for discretization
 The folder 'visualization' contain the result of test on different hyperparameter. The npy files in that folder
 are the saved versions of a numpy matrix, which contain the test result.
 
-The folder 'test' contain some testing code we use to verify our models, you might need to move them to current diretory for working.
+The folder 'test' contain some testing code we use to verify our models, you might need to move them to current diretory for working. Simply run the test code and the result will shows.
 
 The folder R implementation contain the source code of generating hyperplane.
 

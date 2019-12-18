@@ -38,10 +38,10 @@ LEM2.py: this is an implementation of the LEM2 algorithm
 clustering.py: this is an implementation of using K-means for discretization
 
 The folder 'visualization' contain the result of test on different hyperparameter. The npy files in that folder
-are the saved version of a numpy matrix, which contain the test result.
+are the saved versions of a numpy matrix, which contain the test result.
 
-The folder 'test' contain some testing code we use to verify our model, you might need to move them to current diretory for working.
+The folder 'test' contain some testing code we use to verify our models, you might need to move them to current diretory for working.
 
-The folder R implementation contain the source could of generating hyperplane.
+The folder R implementation contain the source code of generating hyperplane.
 
 To follow the convention of models in python(like skilearn), our proposed models offer predict() and fit() function.

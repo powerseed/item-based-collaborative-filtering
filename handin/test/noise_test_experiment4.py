@@ -49,6 +49,7 @@ testX = condition[2000:]
 testY = decision[2000:]
 testX = condition[2000:]
 testY = decision[2000:]
+test_size = testX.shape[0]
 a = ic.ICRS(batch_size)
 b = iv.IVRS(batch_size)
 c = rs.RS()
@@ -69,3 +70,6 @@ for j in range(testX.shape[0]):
     print(d1)
     if d1[0] == testY[j]:
         correct[2] = correct[2] + 1
+for i in range(len(correct)):
+    corrct[i] = correct[i]/test_size
+print(correct)

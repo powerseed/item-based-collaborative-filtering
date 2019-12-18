@@ -31,7 +31,7 @@ RS.py: this file was the taditional rough set system that model 1-6 based on
 
 FRS.py: this file was the fuzzy rough set that 7 - 8 based on
 
-IRS.py: this was our implementation of rough set system with incremental attribute reduction, we use it as counter part in experiment
+IRS.py: this was our implementation of rough set system with incremental attribute reduction, we use it as counterpart in experiment
 
 LEM2.py: this is an implementation of the LEM2 algorithm
 
@@ -42,4 +42,6 @@ are the saved version of a numpy matrix, which contain the test result.
 
 The folder 'test' contain some testing code we use to verify our model, you might need to move them to current diretory for working.
 
-To follow the convention of models in python(like skilearn), our proposed model offer predict() and fit() function.
+The folder R implementation contain the source could of generating hyperplane.
+
+To follow the convention of models in python(like skilearn), our proposed models offer predict() and fit() function.

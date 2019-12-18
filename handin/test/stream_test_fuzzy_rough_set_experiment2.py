@@ -52,8 +52,9 @@ c = tf.TFVFRS(batch_size,fading_factor)
 a.fit(X[:2000],Y[:2000])
 b.fit(X[:2000],Y[:2000])
 c.fit(X[:2000],Y[:2000])
-testX = X[2000:10000]
-testY = Y[2000:10000]
+testX = X[2000:]
+testY = Y[2000:]
+test_size = testX.shape[0]
 correct = [0,0,0,0]
 i = 1
 while testX.shape[0] >= batch_size:
@@ -74,3 +75,7 @@ while testX.shape[0] >= batch_size:
     c.update_group(testX[:batch_size],testY[:batch_size])
     testX = testX[batch_size:]
     testY = testY[batch_size:]
+for i in range(len(correct)):
+    correct[i] = correct[i]/test_size
+    
+print(correct)

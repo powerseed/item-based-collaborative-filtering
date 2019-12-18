@@ -62,7 +62,7 @@ testX = condition[2000:]
 testY = decision[2000:]
 testX = condition[2000:]
 testY = decision[2000:]
-
+test_size = testX.shape[0]
 a = swc.SwCRS(batch_size,window_size)
 b = tfc.TFCRS(batch_size,fading_factor)
 c = ic.ICRS(batch_size)
@@ -107,7 +107,8 @@ while testX.shape[0] >= batch_size:
     f.update_group(testX[:batch_size],testY[:batch_size])
     testX = testX[batch_size:]
     testY = testY[batch_size:]  
-    
+for i in range(len(correct)):
+    correct[i] = correct[i]/test_size
 print(correct)    
     
     

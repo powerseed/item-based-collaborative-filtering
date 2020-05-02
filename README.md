@@ -1,9 +1,9 @@
 # item-based-collaborative-filtering
 
 # How to run:
-Please move the `.py` files in `/handin/test/` to `/handin` and run the corresponding one based on which experiment is to be tested.
+Please move the `.py` files in `/handin/test/` to `/handin` and run the corresponding one based on which experiment is to be tested. The content each file tests is as shown below:
 <br>
-|`.py` file|            |
+|`.py` file in `/handin/test/`|   Content to test         |
 |----------|:-------------:|
 |`testFRS_experiment5_2_1.py` `testRs_experiment5_2_1.py`|Accuracy in FRNN and Rough Set with LEM2(RS+LEM2)|
 |`stream_test_rough_set_experiment5_2_2.py` `stream_test_fuzzy_rough_set_experiment5_2_2.py`|Accuracy in processing streaming data|

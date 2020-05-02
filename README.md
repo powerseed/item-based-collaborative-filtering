@@ -5,7 +5,6 @@ Please move the `.py` files in `/handin/test/` to `/handin` and run the correspo
 <br>
 
 1. `testFRS_experiment5_2_1.py` and `testRs_experiment5_2_1.py`:
-<br>
 FRNN and Rough Set with LEM2(RS+LEM2)
 
 Experiment 5.2.2:

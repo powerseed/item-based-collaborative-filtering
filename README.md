@@ -3,7 +3,7 @@
 # How to run:
 Please move the `.py` files in `/handin/test/` to `/handin` and run the corresponding one based on which experiment is to be tested.
 <br>
-|`.py` file|            
+|`.py` file|            |
 |----------|:-------------:|
 | `testFRS_experiment5_2_1.py` `testRs_experiment5_2_1.py`|  left-aligned |
 | col 2 is |    centered   |

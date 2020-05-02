@@ -1,7 +1,9 @@
 # item-based-collaborative-filtering
 
 # How to run:
-Please move the `.py` files in `/handin/test/` to `/handin` and run the corresponding one based on which experiment is to be tested. The content each file tests is as shown below:
+Please move the `.py` files in `/handin/test/` to `/handin` and run the corresponding one based on which experiment is to be tested.
+<br>
+The content each file tests is listed as below:
 <br>
 |`.py` file in `/handin/test/`|   Content to test         |
 |----------|:-------------:|

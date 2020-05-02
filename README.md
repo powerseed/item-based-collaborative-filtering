@@ -3,6 +3,11 @@
 # How to run:
 Please move the `.py` files in `/handin/test/` to `/handin` and run the corresponding one based on which experiment is to be tested.
 <br>
+| Tables   |      Are      |  Cool |
+|----------|:-------------:|------:|
+| col 1 is |  left-aligned | $1600 |
+| col 2 is |    centered   |   $12 |
+| col 3 is | right-aligned |    $1 |
 
 1. `testFRS_experiment5_2_1.py` and `testRs_experiment5_2_1.py`:
 FRNN and Rough Set with LEM2(RS+LEM2)

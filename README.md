@@ -13,3 +13,4 @@ The content each file tests is listed as below:
 |`concept_drift_test_experiment5_2_5.py`|Gradual concept drift and Abrupt concept drift|
 |`batch_size_test_experiment5_2_6.py` `fading_factor_test_experiment5_2_6.py` `window_size_test_experiment5_2_6.py` |Effects of different hyperparameters|
 
+For detailed conclusion, please read `4710 project report.pdf`

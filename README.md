@@ -5,13 +5,9 @@ Please move the `.py` files in `/handin/test/` to `/handin` and run the correspo
 <br>
 |`.py` file|            |
 |----------|:-------------:|
-|`testFRS_experiment5_2_1.py` `testRs_experiment5_2_1.py`|FRNN and Rough Set with LEM2(RS+LEM2)|
-|`stream_test_rough_set_experiment5_2_2.py` `stream_test_fuzzy_rough_set_experiment5_2_2.py`|data streams environment|
-| col 3 is | right-aligned |
-
-
-Experiment 5.2.4:
-noise_test_experiment5_2_4.py
+|`testFRS_experiment5_2_1.py` `testRs_experiment5_2_1.py`|Accuracy in FRNN and Rough Set with LEM2(RS+LEM2)|
+|`stream_test_rough_set_experiment5_2_2.py` `stream_test_fuzzy_rough_set_experiment5_2_2.py`|Accuracy in processing streaming data|
+|`noise_test_experiment5_2_4.py`| Robustness to outliers |
 
 Experiment 5.2.5:
 concept_drift_test_experiment5_2_5.py
